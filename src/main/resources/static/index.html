@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - AsaditoRG</title>
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat:400,400i,700,700i,600,600i">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Alfa+Slab+One">
+    <style>
+        body {
+          padding: 20px;
+        }
+        .card-deck {
+          margin-top: 20px;
+        }
+        .card {
+          margin-bottom: 20px;
+        }
+        .card-header {
+          text-align: center;
+          font-weight: bold;
+        }
+        .btn {
+          font-size: 14px;
+        }
+        .total {
+          font-size: 1.25rem;
+          font-weight: bold;
+          text-align: center;
+        }
+        .fixed-bottom {
+          position: fixed;
+          bottom: 0;
+          width: 100%;
+          z-index: 1000; /* Para asegurarte de que el total esté siempre encima del contenido */
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="app">
+    <nav class="navbar navbar-light navbar-expand-lg fixed-top bg-white clean-navbar">
+        <div class="container"><a class="navbar-brand logo" href="#" style="background-image:url(&quot;assets/img/Logo Asadito RG - PNG.png&quot;);background-color:rgba(255,255,255,0.15);"><img class="img-thumbnail float-left" src="assets/img/Logo Asadito RG - PNG.png" style="font-size:11px;height:57px;width:157px;margin:-10px;"></a>
+            <button
+                class="navbar-toggler" data-toggle="collapse" data-target="#navcol-1"><span class="sr-only">Toggle navigation</span><span class="navbar-toggler-icon"></span></button>
+                <div class="collapse navbar-collapse" id="navcol-1">
+                    <ul class="nav navbar-nav ml-auto"></ul>
+                </div>
+        </div>
+    </nav>
+    <main class="page landing-page">
+        <section class="clean-block clean-hero" style="background-image:url(&quot;assets/img/asadoimagen2.png&quot;);color:rgba(214,214,216,0);">
+            <div class="text">
+                <h2 style="font-family:'Alfa Slab One', cursive;color:#d0983f;font-size:36px;">Bienvenido a Asadito RG</h2>
+                <p style="font-size:21px;font-family:'Alfa Slab One', cursive;color:#c89646;">Esta aplicacion te va a ayudar a generar tu presupuesto para un buen asado para esa juntada con tu familia o amigos</p>
+            </div>
+        </section>
+        <section class="clean-block clean-info dark">
+            <div class="container">
+                <div class="block-heading">
+                    <h1 style="font-family:'Alfa Slab One', cursive;color:#805A2A;">Como?</h1>
+                    <p style="color:#805A2A;margin-bottom:20px;">Obtenemos los datos de precios que publica la pagina de gobierno PrecioBajo y te mostramos de manera elegante por local y corte todo en uno.</p>
+                    <p style="color:#805a2a;">Adicionalmente vas a poder calcular y generar un reporte en base a cuantos kilos necesitas eligiendo el tipo de corte y de que local. &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+                        &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div class="container mt-5">
+        <h3>Comparativa de Precios de Cortes de Carne</h3>
+
+        <table class="table d-none d-md-table table-bordered">
+            <thead>
+            <tr>
+                <th>Local</th>
+                <th v-for="producto in productos" :key="producto">{{ producto }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="store in productosInfo" :key="store.localNombre">
+                <td>{{ store.localNombre }}</td>
+                <td v-for="producto in productos" :key="producto">
+                    <!-- Verificamos si el producto está disponible en el local -->
+                    <span v-if="isProductAvailable(store, producto)">
+                            ${{ getProductPrice(store, producto) }}
+                        </span>
+                    <span v-else>
+                            No disponible
+                        </span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <section>
+
+
+        <div class="container">
+            <h3>A Calcular el asadito!</h3>
+
+            <div class="row">
+                <div class="col-md-4" v-for="(store, storeIndex) in productosInfo" :key="storeIndex">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5>{{ store.localNombre }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div v-for="(product, productIndex) in store.productos" :key="productIndex" class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6>{{ product.nombre }}</h6>
+                                    <p>Precio: ${{ product.precio.toFixed(2) }}</p>
+                                    <p>Fecha: {{ product.fecha }}</p>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <button class="btn btn-danger" @click="decreaseQuantity(store, product)">-</button>
+                                    <span class="mx-3">{{ (product.quantity || 0).toFixed(1) }} kg</span>
+                                    <button class="btn btn-primary" @click="increaseQuantity(store, product)">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fixed-bottom bg-dark text-white py-2">
+                <div class="container d-flex justify-content-between align-items-center">
+                    <h5>Total: ${{ totalPrice }}</h5>
+
+                    <!-- Botón para limpiar las cantidades -->
+                    <button class="btn btn-danger" @click="clearQuantities">Limpiar Cantidades</button>
+
+                    <!-- Botón para generar el PDF -->
+                    <button class="btn btn-primary" @click="generatePDF">Generar PDF</button>
+                </div>
+            </div>
+
+
+        </div>
+    <footer class="page-footer dark">
+        <div class="footer-copyright">
+            <p>© 2025 AsaditoRG</p>
+        </div>
+    </footer>
+    </section>
+</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.0/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/script.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="assets/js/precioproductos.js"></script>
+</body>
+
+</html>
