@@ -35,7 +35,8 @@ public class AuthController {
     public Map<String, Object> me(Authentication auth) {
         boolean loggedIn = auth != null && auth.isAuthenticated();
         return Map.of("authenticated", loggedIn, "email", loggedIn ? auth.getName() : "",
-            "admin", loggedIn && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")));
+            "admin", loggedIn && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")),
+            "operador", loggedIn && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_OPERADOR")));
     }
     @PostMapping("/registro")
     @ResponseStatus(HttpStatus.CREATED)

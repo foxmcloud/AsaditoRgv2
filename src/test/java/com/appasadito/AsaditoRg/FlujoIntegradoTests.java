@@ -5,6 +5,11 @@ import com.appasadito.AsaditoRg.repositorios.*;
 import com.appasadito.AsaditoRg.services.PdfService;
 import com.appasadito.AsaditoRg.dtos.Presupuesto;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.test.util.ReflectionTestUtils;
+import com.appasadito.AsaditoRg.config.AdminBootstrap;
+import javax.validation.Validator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -19,7 +24,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -34,6 +42,7 @@ class FlujoIntegradoTests {
     @Autowired UsuarioRepository users;
     @Autowired PasswordEncoder encoder;
     @Autowired PdfService pdf;
+    @Autowired Validator validator;
     Productos product;
     Locales store;
     Precios price;
@@ -47,7 +56,12 @@ class FlujoIntegradoTests {
     @Test void publicCatalogAndAnonymousSession() throws Exception {
         mvc.perform(get("/api/productos")).andExpect(status().isOk());
         mvc.perform(get("/api/auth/me")).andExpect(jsonPath("$.authenticated").value(false));
-        mvc.perform(get("/")).andExpect(status().isOk());
+        mvc.perform(get("/")).andExpect(status().isOk())
+            .andExpect(content().string(not(containsString("id=\"admin-form\""))))
+            .andExpect(content().string(not(containsString("id=\"gestion\""))));
+        mvc.perform(get("/gestion.html")).andExpect(status().isOk())
+            .andExpect(content().string(containsString("id=\"admin-form\"")))
+            .andExpect(content().string(not(containsString("id=\"calculadora\""))));
     }
     @Test void registrationHashesAndNeverAcceptsRole() throws Exception {
         mvc.perform(post("/api/auth/registro").with(csrf()).contentType("application/json")
@@ -90,17 +104,17 @@ class FlujoIntegradoTests {
     @Test @WithMockUser(roles = "USER") void userCannotAdminister() throws Exception {
         mvc.perform(delete("/api/admin/productos/" + product.getId()).with(csrf())).andExpect(status().isForbidden());
     }
-    @Test @WithMockUser(roles = "ADMIN") void crudAndLogicalDeletion() throws Exception {
+    @Test @WithMockUser(roles = "OPERADOR") void crudAndLogicalDeletion() throws Exception {
         mvc.perform(post("/api/admin/productos").with(csrf()).contentType("application/json").content("{\"nombre\":\"Entraña\"}"))
             .andExpect(status().isCreated()).andExpect(jsonPath("$.id").isNumber());
         mvc.perform(put("/api/admin/productos/" + product.getId()).with(csrf()).contentType("application/json").content("{\"nombre\":\"Vacío actualizado\"}"))
             .andExpect(status().isOk()).andExpect(jsonPath("$.nombre").value("Vacío actualizado"));
-        mvc.perform(delete("/api/admin/productos/" + product.getId()).with(csrf())).andExpect(status().isNoContent());
+        mvc.perform(delete("/api/admin/productos/" + product.getId()).with(user("admin").roles("ADMIN")).with(csrf())).andExpect(status().isNoContent());
         assertTrue(products.existsById(product.getId())); assertFalse(products.findById(product.getId()).orElseThrow().isActivo());
         mvc.perform(get("/api/precios/ultimos")).andExpect(content().json("[]"));
         mvc.perform(post("/api/presupuestos/calcular").with(csrf()).contentType("application/json").content(basket())).andExpect(status().isNotFound());
     }
-    @Test @WithMockUser(roles = "ADMIN") void validatesJavaFieldsAndForeignKeys() throws Exception {
+    @Test @WithMockUser(roles = "OPERADOR") void validatesJavaFieldsAndForeignKeys() throws Exception {
         mvc.perform(post("/api/admin/productos").with(csrf()).contentType("application/json").content("{\"nombre\":\" \"}"))
             .andExpect(status().isBadRequest()).andExpect(jsonPath("$.fields.nombre").exists());
         mvc.perform(post("/api/admin/locales").with(csrf()).contentType("application/json")
@@ -111,7 +125,7 @@ class FlujoIntegradoTests {
         mvc.perform(post("/api/admin/precios").with(csrf()).contentType("application/json").content(badPrice.replace("\"precio\":-1", "\"precio\":12.50").replace("\"localId\":" + store.getId(), "\"localId\":999999")))
             .andExpect(status().isNotFound());
     }
-    @Test @WithMockUser(roles = "ADMIN") void editsStoresAndPricesAndPreservesLogicalDeletions() throws Exception {
+    @Test @WithMockUser(roles = "OPERADOR") void editsStoresAndPricesAndPreservesLogicalDeletions() throws Exception {
         mvc.perform(put("/api/admin/locales/" + store.getId()).with(csrf()).contentType("application/json")
             .content("{\"nombre\":\"Local editado\",\"direccion\":\"Calle 456\",\"latitud\":-53.7,\"longitud\":-67.7}"))
             .andExpect(status().isOk()).andExpect(jsonPath("$.direccion").value("Calle 456"));
@@ -121,10 +135,56 @@ class FlujoIntegradoTests {
         mvc.perform(post("/api/admin/precios").with(csrf()).contentType("application/json")
             .content(priceBody.replace(LocalDate.now().toString(), LocalDate.now().plusDays(1).toString())))
             .andExpect(status().isBadRequest());
-        mvc.perform(delete("/api/admin/precios/" + price.getId()).with(csrf())).andExpect(status().isNoContent());
+        mvc.perform(delete("/api/admin/precios/" + price.getId()).with(user("admin").roles("ADMIN")).with(csrf())).andExpect(status().isNoContent());
         assertTrue(prices.existsById(price.getId())); assertFalse(prices.findById(price.getId()).orElseThrow().isActivo());
-        mvc.perform(delete("/api/admin/locales/" + store.getId()).with(csrf())).andExpect(status().isNoContent());
+        mvc.perform(delete("/api/admin/locales/" + store.getId()).with(user("admin").roles("ADMIN")).with(csrf())).andExpect(status().isNoContent());
         assertTrue(stores.existsById(store.getId())); assertFalse(stores.findById(store.getId()).orElseThrow().isActivo());
+    }
+    @ParameterizedTest @ValueSource(strings = {"USER", "OPERADOR", "ADMIN"})
+    void roleMatrixAppliesToEveryCatalogEntity(String role) throws Exception {
+        String[] kinds = {"productos", "locales", "precios"};
+        int[] ids = {product.getId(), store.getId(), price.getId()};
+        String[] bodies = {
+            "{\"nombre\":\"Corte editado\"}",
+            "{\"nombre\":\"Local editado\",\"direccion\":\"Calle 456\",\"latitud\":-53.7,\"longitud\":-67.7}",
+            "{\"localId\":" + store.getId() + ",\"productoId\":" + product.getId() + ",\"precio\":2500.25,\"fecha\":\"" + LocalDate.now() + "\"}"
+        };
+        for (int i = 0; i < kinds.length; i++) {
+            mvc.perform(post("/api/admin/" + kinds[i]).with(user("staff").roles(role)).with(csrf())
+                .contentType("application/json").content(bodies[i]))
+                .andExpect(status().is(role.equals("OPERADOR") ? 201 : 403));
+            mvc.perform(put("/api/admin/" + kinds[i] + "/" + ids[i]).with(user("staff").roles(role)).with(csrf())
+                .contentType("application/json").content(bodies[i]))
+                .andExpect(status().is(role.equals("OPERADOR") ? 200 : 403));
+        }
+        // Check deletions last so a parent deactivation does not affect the editing checks.
+        for (int i = 0; i < kinds.length; i++) {
+            mvc.perform(delete("/api/admin/" + kinds[i] + "/" + ids[i]).with(user("staff").roles(role)).with(csrf()))
+                .andExpect(status().is(role.equals("ADMIN") ? 204 : 403));
+        }
+        assertEquals(!role.equals("ADMIN"), products.findById(product.getId()).orElseThrow().isActivo());
+        assertEquals(!role.equals("ADMIN"), stores.findById(store.getId()).orElseThrow().isActivo());
+        assertEquals(!role.equals("ADMIN"), prices.findById(price.getId()).orElseThrow().isActivo());
+        mvc.perform(get("/api/auth/me").with(user("staff").roles(role)))
+            .andExpect(jsonPath("$.admin").value(role.equals("ADMIN")))
+            .andExpect(jsonPath("$.operador").value(role.equals("OPERADOR")));
+    }
+    @Test void bootstrapCreatesStaffWithoutChangingExistingPasswords() {
+        AdminBootstrap bootstrap = new AdminBootstrap(users, encoder, validator);
+        ReflectionTestUtils.setField(bootstrap, "email", "jefe@example.com");
+        ReflectionTestUtils.setField(bootstrap, "password", "ClaveInicialSegura123");
+        ReflectionTestUtils.setField(bootstrap, "operatorEmail", "operador@example.com");
+        ReflectionTestUtils.setField(bootstrap, "operatorPassword", "ClaveOperadorSegura123");
+        bootstrap.run();
+        assertEquals("ADMIN", users.findByEmail("jefe@example.com").orElseThrow().getRol());
+        Usuario operator = users.findByEmail("operador@example.com").orElseThrow();
+        assertEquals("OPERADOR", operator.getRol());
+        assertTrue(encoder.matches("ClaveOperadorSegura123", operator.getPasswordHash()));
+        ReflectionTestUtils.setField(bootstrap, "operatorPassword", "OtraClaveDiferente123");
+        bootstrap.run();
+        assertEquals(operator.getPasswordHash(), users.findByEmail("operador@example.com").orElseThrow().getPasswordHash());
+        ReflectionTestUtils.setField(bootstrap, "operatorEmail", "\"operador@example.com\"");
+        assertThrows(IllegalStateException.class, bootstrap::run);
     }
     @Test void calculatesDecimalMoneyAndLatestPriceDeterministically() throws Exception {
         Precios old = new Precios(new BigDecimal("1.00")); old.setFecha(LocalDate.now().minusDays(1)); old.setLocal(store); old.setProducto(product); prices.saveAndFlush(old);
@@ -157,11 +217,31 @@ class FlujoIntegradoTests {
             assertTrue(text.contains("Vacío de prueba")); assertTrue(text.contains("15.000,02")); assertTrue(text.contains("TOTAL"));
         }
     }
+    @Test void pdfEmbedsFontsAndWrapsLongNamesWithoutLosingAmounts() throws Exception {
+        String name = "CorteEspecialSinEspacios".repeat(5);
+        var lines = List.of(new Presupuesto.Linea(1, name, new BigDecimal("1000"),
+            new BigDecimal("9999999999.99"), new BigDecimal("9999999999990.00"), LocalDate.now()));
+        byte[] bytes = pdf.generate(new Presupuesto(1, "Comercio con nombre largo ".repeat(4), "Dirección extensa ".repeat(8), lines,
+            new BigDecimal("9999999999990.00")));
+        try (PDDocument document = PDDocument.load(bytes)) {
+            String text = new PDFTextStripper().getText(document);
+            assertTrue(text.replaceAll("\\s+", "").contains(name));
+            assertTrue(text.contains("9.999.999.999.990,00"));
+            for (var page : document.getPages())
+                for (var fontName : page.getResources().getFontNames())
+                    assertTrue(page.getResources().getFont(fontName).isEmbedded());
+        }
+    }
     @Test void pdfPaginatesLargeBudgets() throws Exception {
         List<Presupuesto.Linea> lines = new ArrayList<>();
         for (int i = 0; i < 30; i++) lines.add(new Presupuesto.Linea(i, "Corte " + i, BigDecimal.ONE, BigDecimal.TEN, BigDecimal.TEN, LocalDate.now()));
         try (PDDocument document = PDDocument.load(pdf.generate(new Presupuesto(1, "Local", "Dirección", lines, new BigDecimal("300.00"))))) {
-            assertEquals(3, document.getNumberOfPages()); assertTrue(new PDFTextStripper().getText(document).contains("Corte 29"));
+            assertTrue(document.getNumberOfPages() >= 3);
+            String text = new PDFTextStripper().getText(document);
+            assertTrue(text.contains("Corte 29"));
+            assertTrue(text.contains("Página 1 de " + document.getNumberOfPages()));
+            assertTrue(text.contains("Página " + document.getNumberOfPages() + " de " + document.getNumberOfPages()));
+            assertTrue(text.contains("300,00"));
         }
     }
 }

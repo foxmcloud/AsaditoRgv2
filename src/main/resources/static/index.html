@@ -24,7 +24,7 @@
       <nav aria-label="Navegación principal">
         <a href="#comparador">Comparar precios</a
         ><a href="#calculadora">Mi presupuesto</a
-        ><a href="#gestion" id="admin-link" hidden>Administrar</a>
+        ><a href="/gestion.html" id="admin-link" hidden>Administrar</a>
       </nav>
       <div id="session-actions">
         <button class="button small" id="open-login">Ingresar</button>
@@ -161,30 +161,6 @@
           </aside>
         </div>
       </section>
-      <section
-        id="gestion"
-        class="section"
-        hidden
-        aria-labelledby="admin-title"
-      >
-        <div class="section-heading">
-          <div>
-            <span class="eyebrow">ADMINISTRACIÓN</span>
-            <h2 id="admin-title">Mantené los precios al día.</h2>
-            <p>Altas, modificaciones y bajas lógicas del catálogo.</p>
-          </div>
-        </div>
-        <div class="admin-toolbar">
-          <label for="admin-kind"
-            >Gestionar<select id="admin-kind">
-              <option value="precios">Precios</option>
-              <option value="productos">Cortes</option>
-              <option value="locales">Locales</option>
-            </select></label
-          ><button id="admin-new" class="button">Nuevo registro +</button>
-        </div>
-        <div id="admin-list" class="table-wrap"></div>
-      </section>
     </main>
     <footer>
       <a class="brand" href="#inicio">♨ asadito RG</a>
@@ -226,34 +202,6 @@
       <button class="text-button" id="auth-toggle">
         ¿Primera vez? Creá tu cuenta
       </button>
-    </dialog>
-    <dialog id="admin-dialog" aria-labelledby="edit-title">
-      <button
-        class="close-dialog"
-        data-close="admin-dialog"
-        aria-label="Cerrar"
-      >
-        ×
-      </button>
-      <h2 id="edit-title">Nuevo registro</h2>
-      <form id="admin-form">
-        <div id="admin-fields"></div>
-        <p id="admin-error" class="form-error" role="alert"></p>
-        <button type="submit" class="button full">Guardar registro</button>
-      </form>
-    </dialog>
-    <dialog id="delete-dialog" aria-labelledby="delete-title">
-      <h2 id="delete-title">¿Dar de baja el registro?</h2>
-      <p>
-        Dejará de mostrarse en las consultas. El registro seguirá en la base de
-        datos.
-      </p>
-      <p id="delete-error" class="form-error" role="alert"></p>
-      <div class="dialog-actions">
-        <button class="button secondary" data-close="delete-dialog">
-          Cancelar</button
-        ><button class="button" id="confirm-delete">Dar de baja</button>
-      </div>
     </dialog>
   </body>
 </html>

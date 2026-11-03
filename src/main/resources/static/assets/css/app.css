@@ -770,3 +770,43 @@ dialog form .button {
     transition: none !important;
   }
 }
+
+.management-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.management-summary > div {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+}
+.management-summary strong {
+  display: block;
+  color: var(--green);
+  font-size: 28px;
+}
+.management-summary span {
+  font-size: 12px;
+  color: var(--muted);
+}
+@media (max-width: 540px) {
+  .management-summary {
+    gap: 8px;
+  }
+  .management-summary > div {
+    padding: 12px;
+  }
+  .management-summary span {
+    font-size: 10px;
+  }
+}
+
+.management-page {
+  min-height: calc(100vh - 210px);
+}
+.admin-toolbar {
+  flex-wrap: wrap;
+}

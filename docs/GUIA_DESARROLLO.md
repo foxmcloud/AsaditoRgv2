@@ -8,7 +8,7 @@ Una persona quiere comprar los cortes para una juntada y saber cuánto cuesta su
 
 Decisión de negocio: la comparación del presupuesto usa la MISMA lista en todos los locales. Un comercio sin precio de uno de los cortes no participa del ranking de totales. Un precio ausente no vale cero. Este diseño compara una compra completa en un solo comercio; combinar compras en varios locales es una mejora futura diferente.
 
-No se publicaron precios de ejemplo como si fueran reales. Los 8 cortes y 13 locales iniciales vienen del proyecto original. El administrador debe cargar precios con fecha y confirmar su fuente. Los archivos Excel/CSV del repositorio no se importan automáticamente.
+No se publicaron precios de ejemplo como si fueran reales. Los 8 cortes y 13 locales iniciales vienen del proyecto original. El operador debe cargar precios con fecha y confirmar su fuente. Los archivos Excel/CSV del repositorio no se importan automáticamente.
 
 ## 2. Correspondencia con los criterios de la materia
 
@@ -16,7 +16,7 @@ No se publicaron precios de ejemplo como si fueran reales. Los 8 cortes y 13 loc
 | --- | --- | --- |
 | 1. Sesiones y autenticación | Spring Security, login por formulario, cookie JSESSIONID, logout, endpoint de sesión | Explicar por qué se usa sesión y cómo se renueva el ID al autenticar |
 | 2. Contraseñas seguras | BCrypt y columna passwordHash; nunca se devuelve el hash en la API | Diferenciar hash y cifrado; no agregar contraseñas de prueba al código |
-| 3. ABM principal | Productos, locales y precios: altas, edición y baja desde panel ADMIN | Demostrar las tres operaciones en cada entidad |
+| 3. ABM principal | Productos, locales y precios: altas/edición desde OPERADOR y bajas desde ADMIN | Demostrar las tres operaciones en cada entidad |
 | 4. Bajas lógicas | Campo activo; las bajas no llaman delete del repositorio | Mostrar que el registro permanece y desaparece de consultas públicas |
 | 5. Organización | config, controllers, dtos, services, modelos, repositorios; frontend separado en assets | Seguir el recorrido de una solicitud desde la pantalla hasta la BD |
 | 6. Entidades y POO | Usuario; Locales y Productos relacionados por Precios | Justificar cardinalidades, identidad y responsabilidades |
@@ -36,11 +36,12 @@ Seguí el README. Las variables importantes son:
 
 - SPRING_DATASOURCE_URL: JDBC de la base PostgreSQL.
 - SPRING_DATASOURCE_USERNAME y SPRING_DATASOURCE_PASSWORD: credenciales locales, fuera de Git.
-- ASADITO_ADMIN_EMAIL y ASADITO_ADMIN_PASSWORD: creación inicial opcional del administrador. Nunca hay un ADMIN público por defecto.
+- ASADITO_ADMIN_EMAIL y ASADITO_ADMIN_PASSWORD: creación inicial opcional del administrador que solo da de baja.
+- ASADITO_OPERADOR_EMAIL y ASADITO_OPERADOR_PASSWORD: creación inicial opcional del operador que agrega y modifica. Debe usar otro email. No hay cuentas de gestión públicas por defecto.
 - PORT: puerto HTTP, por defecto 8080.
 - SESSION_COOKIE_SECURE: false para HTTP local, true cuando el despliegue usa HTTPS.
 
-El bootstrap no cambia la contraseña de un administrador existente ni convierte usuarios USER en ADMIN. Si el email ya está registrado como USER, elegí un email nuevo para el administrador o realizá una operación administrativa controlada. No agregues un endpoint público para elegir roles.
+El bootstrap no cambia contraseñas ni roles existentes. Las cuentas ADMIN y OPERADOR se crean con emails distintos. Si el email ya está registrado como USER, elegí un email nuevo para el administrador o realizá una operación administrativa controlada. No agregues un endpoint público para elegir roles.
 
 En una base existente: detené la aplicación, hacé un respaldo con pg_dump y ejecutá docs/migracion-v2.sql con psql usando ON_ERROR_STOP. El script añade activo con valor true y convierte precios a numeric(14,2), redondeando registros anteriores a dos decimales. El redondeo de datos históricos debe revisarse antes de aplicarlo a una base real. En bases nuevas, Hibernate crea el esquema.
 
@@ -48,19 +49,19 @@ La migración es idempotente. No borra tablas ni elimina datos. ddl-auto=update 
 
 ### Datos iniciales
 
-1. Iniciá la aplicación con las variables del primer administrador.
-2. Ingresá con esa cuenta.
+1. Iniciá la aplicación con las variables de las cuentas ADMIN y OPERADOR, cada una con su propio email.
+2. Ingresá con la cuenta OPERADOR para crear y editar información.
 3. Abrí Administrar y cargá el precio por kilo de un corte en dos locales.
 4. La fecha no puede ser futura. Cuando hay varios precios de la misma fecha para un corte/local, se usa el registro con mayor ID.
-5. Retirá las variables de bootstrap cuando ya tengas el administrador creado.
+5. Retirá las variables de bootstrap cuando las cuentas estén creadas. Para dar de baja ingresá como ADMIN.
 
 El catálogo arranca sin precios. Ver un estado vacío es correcto. No implica que la importación automática esté funcionando.
 
 ## 4. Cómo funciona la seguridad
 
-SecurityConfig arma la cadena de filtros de Spring Security. Las consultas del catálogo y el cálculo son públicos. Los endpoints de administración requieren ROLE_ADMIN. El PDF requiere un usuario autenticado. La interfaz oculta el panel cuando corresponde, pero la protección real está en el servidor.
+SecurityConfig arma la cadena de filtros de Spring Security. Las consultas del catálogo y el cálculo son públicos. Las altas (POST) y modificaciones (PUT) del catálogo requieren ROLE_OPERADOR. Las bajas (DELETE) requieren ROLE_ADMIN. ADMIN no hereda los permisos del operador y el operador no puede eliminar. El PDF requiere un usuario autenticado. La interfaz oculta el panel cuando corresponde, pero la protección real está en el servidor.
 
-El registro recibe email y password. El email se normaliza y tiene unicidad en la base. El servidor asigna USER; rechaza campos no reconocidos como rol. BCrypt aplica sal y costo de trabajo. La contraseña se valida antes de codificarla: mínimo 10 caracteres y máximo 72 bytes UTF-8, límite relevante de BCrypt. Un carácter acentuado puede ocupar más de un byte.
+El registro público recibe email y password. El email se normaliza y tiene unicidad en la base. El servidor asigna USER; rechaza campos no reconocidos como rol. BCrypt aplica sal y costo de trabajo. La contraseña se valida antes de codificarla: mínimo 10 caracteres y máximo 72 bytes UTF-8, límite relevante de BCrypt. Un carácter acentuado puede ocupar más de un byte.
 
 El login es POST /api/auth/login y recibe email y password como formulario URL-encoded. Spring Security verifica la contraseña y administra la sesión, incluida protección contra fijación de sesión. La cookie es HttpOnly y SameSite=Lax. La sesión expira luego de 30 minutos de inactividad. Logout es POST y elimina la sesión y cookie.
 
@@ -94,9 +95,9 @@ Límite actual: se realizan solicitudes por comercio y se consulta el catálogo 
 
 ## 7. PDF y WhatsApp
 
-PdfService usa PDFBox en el backend. Incluye comercio, dirección, kilos, precio por kilo, subtotal, fechas, moneda, total y aviso de presupuesto estimativo. Tiene paginación. Usa una fuente PDF incorporada compatible con texto español; reemplaza caracteres no soportados y recorta líneas demasiado largas para evitar que salgan de la hoja. Si necesitás nombres en cualquier idioma, incorporá una fuente Unicode con licencia apropiada y ajuste de líneas.
+PdfService usa PDFBox en el backend. Incluye comercio, dirección, kilos, precio por kilo, subtotal, fechas, moneda, total y aviso de presupuesto estimativo. El diseño usa los colores de Asadito RG, encabezado de marca, tarjeta del comercio, tabla con filas alternadas, resumen de kilos, total destacado y páginas numeradas. Incluye fuentes Liberation incrustadas, con licencia SIL OFL incluida en src/main/resources/fonts/LICENSE.txt, para mantener la tipografía entre dispositivos. Los nombres y direcciones largos se ajustan en varias líneas sin truncarlos; los caracteres sin glifo se reemplazan por ?. Las tablas repiten encabezados y el bloque de totales se mantiene completo al cambiar de página.
 
-El PDF se genera con precios vigentes al pedirlo; si otro administrador actualiza precios entre el cálculo visual y la descarga, el documento puede reflejar la actualización. Una mejora recomendable es guardar un presupuesto inmutable con ID, usuario, fecha y detalle de precios. Usá el mismo ID para vista previa, PDF e historial, y controlá la propiedad del usuario en cada consulta.
+El PDF se genera con precios vigentes al pedirlo; si un operador actualiza precios entre el cálculo visual y la descarga, el documento puede reflejar la actualización. Una mejora recomendable es guardar un presupuesto inmutable con ID, usuario, fecha y detalle de precios. Usá el mismo ID para vista previa, PDF e historial, y controlá la propiedad del usuario en cada consulta.
 
 Compartir resumen por WhatsApp abre wa.me con texto codificado. El usuario elige conversación y confirma el envío. No sube el documento ni envía mensajes automáticamente. No se realizó ningún envío real durante las pruebas.
 
@@ -119,14 +120,14 @@ Esta integración automática queda pendiente; no es una función simulada ni se
 | Ruta | Acceso | Uso |
 | --- | --- | --- |
 | GET /api/auth/csrf | Público | Token CSRF de la sesión |
-| GET /api/auth/me | Público | Estado de la sesión y rol administrativo |
+| GET /api/auth/me | Público | Estado de sesión e indicadores admin/operador |
 | POST /api/auth/registro | Público + CSRF | Crear USER |
 | POST /api/auth/login | Público + CSRF | Autenticar formulario |
 | POST /api/auth/logout | Sesión + CSRF | Invalidar sesión |
 | GET /api/productos, /api/locales, /api/precios | Público | Catálogo activo |
 | GET /api/precios/ultimos | Público | Último precio activo por corte/local |
-| POST /api/admin/productos, /locales, /precios | ADMIN + CSRF | Alta |
-| PUT /api/admin/productos/{id}, /locales/{id}, /precios/{id} | ADMIN + CSRF | Edición |
+| POST /api/admin/productos, /locales, /precios | OPERADOR + CSRF | Alta |
+| PUT /api/admin/productos/{id}, /locales/{id}, /precios/{id} | OPERADOR + CSRF | Edición |
 | DELETE /api/admin/{tipo}/{id} | ADMIN + CSRF | Baja lógica |
 | POST /api/presupuestos/calcular | Público + CSRF | Validar y calcular |
 | POST /api/presupuestos/pdf | Autenticado + CSRF | Descargar PDF recalculado |
@@ -153,7 +154,7 @@ Ensayo manual recomendado:
 
 1. Abrir en una ventana privada: comparar sin cuenta, intentar descargar PDF y observar el pedido de ingreso.
 2. Registrar USER; cerrar sesión; probar una contraseña incorrecta; volver a ingresar; confirmar que no aparece administración.
-3. Con ADMIN, crear, editar y dar de baja un producto, local y precio. Revisar la fila conservada en la base.
+3. Con OPERADOR, crear y editar productos, locales y precios. Verificar que no vea botones de baja y que DELETE directo sea rechazado. Cambiar a ADMIN, verificar que no pueda crear/editar y dar de baja. Revisar la fila conservada en la base.
 4. Publicar un corte en dos locales: 10000 y 12000 por kilo. Con 1,5 kg, comprobar 15000 y 18000. El primero debe encabezar el ranking.
 5. Agregar un segundo corte sin precio en uno de los locales: ese comercio debe aparecer incompleto, sin total competitivo.
 6. Intentar datos vacíos, precio negativo, fecha futura, coordenada 91 de latitud, cantidad negativa y cuatro decimales. Verificar rechazo en Java aunque se omita el HTML.
@@ -169,7 +170,7 @@ La prueba funcional de navegador realizada en el entorno usa Chromium y una base
 - Seguí el clic en “Calcular”: evento JS, fetch, CSRF, controlador, DTO, servicio, repositorio y respuesta. Explicalo sin leer la guía.
 - Cambiá el máximo permitido a 500 kg. ¿Qué validación backend y qué atributo HTML/validación JS deben cambiar? Agregá una prueba de 501.
 - Agregá teléfono opcional al local. Modificá entidad, migración, DTO de entrada, validación, proyección y formulario. No confundas teléfono con credencial.
-- Agregá restauración de productos dados de baja solo para ADMIN. Definí cómo afecta sus precios y escribí una prueba.
+- Diseñá una posible restauración de bajas: acordá primero quién debería autorizarla, ya que actualmente ADMIN solo elimina y OPERADOR crea/edita. No amplíes permisos sin definir la regla y sus pruebas.
 - Probá dos locales con el mismo nombre. Explicá por qué los IDs mantienen presupuestos independientes.
 - Simulá la baja del último precio y explicá qué registro anterior se selecciona.
 - Justificá por qué una lista incompleta no debe ganar por total menor y por qué el backend recalcula el PDF.
@@ -179,7 +180,7 @@ La prueba funcional de navegador realizada en el entorno usa Chromium y una base
 
 Prioridad 1, antes de una entrega real: conseguir precios actuales con fuente/fecha comprobables, cargar datos representativos, ensayar todas las operaciones y preparar explicación del modelo. Rotar cualquier credencial real que haya estado en el archivo application.properties o en su historial Git: borrarla del archivo actual no la elimina del historial.
 
-Prioridad 2, calidad y evolución: migraciones versionadas con Flyway/Liquibase y ddl-auto=validate; optimizar relaciones EAGER y consultas del catálogo; agregar índices y paginación; auditoría de cambios, vigencia de precios y recuperación de bajas; pruebas adicionales para concurrencia de administradores y fallos de red.
+Prioridad 2, calidad y evolución: migraciones versionadas con Flyway/Liquibase y ddl-auto=validate; optimizar relaciones EAGER y consultas del catálogo; agregar índices y paginación; auditoría de cambios, vigencia de precios y recuperación de bajas; pruebas adicionales para concurrencia de operadores y fallos de red.
 
 Prioridad 3, producto: presupuestos persistentes por usuario, historial y repetición de listas, filtros por zona, compra combinada entre comercios y un importador Excel/CSV con vista previa, validación y detección de duplicados. Los archivos heredados requieren revisar formato y procedencia, no cargarlos ciegamente.
 
@@ -188,3 +189,11 @@ Prioridad 4, despliegue: actualizar Spring Boot y dependencias a versiones mante
 Prioridad 5, integración comercial: WhatsApp Business solo si aporta valor frente al envío manual, con las condiciones y controles explicados antes.
 
 Los binarios y recursos de build/ ya estaban versionados. Los cambios nuevos no los sobrescriben durante la validación cloud. Como limpieza futura independiente, revisá retirar esos archivos del índice con git rm --cached, manteniendo las fuentes y comprobando la compilación limpia. .gitignore evita nuevas salidas, pero no desversiona archivos existentes.
+
+## 12. Paneles OPERADOR y ADMIN
+
+La gestión se realiza en una página independiente /gestion.html. La página pública / no contiene formularios administrativos, ni siquiera cuando hay sesión de gestión. Los módulos app.js y gestion.js separan sus funciones y comparten session.js para autenticación y CSRF. El operador dispone de un resumen del catálogo, selector de precios/cortes/locales, alta y edición. No tiene botones para dar de baja. El administrador dispone del mismo catálogo para identificar registros y confirmar bajas lógicas; no tiene botones de nuevo ni editar. Un USER no ve ninguno de los paneles.
+
+La API conserva las rutas /api/admin para compatibilidad; ese nombre no concede permisos: Spring Security decide según POST/PUT para OPERADOR y DELETE para ADMIN. El resto de métodos de ese espacio se deniega. No se permite elegir rol en el registro público.
+
+Las cuentas existentes conservan su rol; ADMIN deja de crear/editar según la nueva regla de negocio. OPERADOR es un nuevo valor de la columna rol, por lo que no requiere migración de esquema. Para crearlo en IntelliJ consultá docs/ROLES_Y_PANELES.md. Nunca uses un mismo email para ambas cuentas ni intentes cambiar una contraseña existente solo modificando variables de bootstrap.

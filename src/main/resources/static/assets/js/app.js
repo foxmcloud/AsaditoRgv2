@@ -1,12 +1,15 @@
-const $ = (id) => document.getElementById(id);
-const money = (value) =>
-  new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(
-    value,
-  );
-const date = (value) =>
-  value
-    ? new Intl.DateTimeFormat("es-AR").format(new Date(`${value}T12:00:00`))
-    : "Sin fecha";
+import {
+  $,
+  money,
+  date,
+  escape,
+  notice,
+  api,
+  session,
+  openAuth,
+  onSessionChange,
+  initSession,
+} from "./session.js";
 const state = {
   products: [],
   stores: [],
@@ -15,73 +18,10 @@ const state = {
   quantities: {},
   quotes: [],
   selected: null,
-  user: {},
-  csrf: null,
   pdf: null,
-  register: false,
   revision: 0,
   busy: false,
 };
-const escape = (value) =>
-  String(value ?? "").replace(
-    /[&<>"']/g,
-    (c) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
-        c
-      ],
-  );
-function notice(message, error = false) {
-  $("notice").textContent = message;
-  $("notice").className = error ? "error" : "";
-  $("notice").hidden = false;
-}
-async function refreshCsrf() {
-  const response = await fetch("/api/auth/csrf", {
-    credentials: "same-origin",
-    cache: "no-store",
-  });
-  if (!response.ok)
-    throw new Error("No se pudo iniciar la sesión. Recargá la página.");
-  state.csrf = await response.json();
-}
-async function api(path, options = {}) {
-  const headers = new Headers(options.headers);
-  if (options.body && !(options.body instanceof URLSearchParams))
-    headers.set("Content-Type", "application/json");
-  if (options.method && options.method !== "GET") {
-    if (!state.csrf) await refreshCsrf();
-    headers.set(state.csrf.headerName, state.csrf.token);
-  }
-  const response = await fetch(path, {
-    credentials: "same-origin",
-    ...options,
-    headers,
-  });
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    const fields = Object.entries(body.fields || {})
-      .map(([field, error]) => `${field}: ${error}`)
-      .join(" · ");
-    if (response.status === 401) {
-      state.user = {};
-      renderSession();
-    }
-    if (response.status === 403) {
-      state.csrf = null;
-    }
-    throw new Error(
-      [
-        body.message ||
-          `No se pudo completar la operación (${response.status})`,
-        fields,
-      ]
-        .filter(Boolean)
-        .join(". "),
-    );
-  }
-  if (response.status === 204) return null;
-  return options.pdf ? response.blob() : response.json();
-}
 function invalidate() {
   state.revision++;
   state.quotes = [];
@@ -108,7 +48,6 @@ async function load() {
     invalidate();
     renderComparison();
     renderBasket();
-    renderAdmin();
   } catch (error) {
     notice(error.message, true);
     $("comparison").innerHTML =
@@ -127,7 +66,7 @@ function renderComparison() {
     `${state.stores.length} locales · ${state.products.length} cortes`;
   if (!stores.length) {
     $("comparison").innerHTML =
-      '<div class="empty"><strong>Todavía no hay precios publicados.</strong>Los locales y cortes ya están disponibles. Un administrador debe cargar los precios para comenzar a comparar.</div>';
+      '<div class="empty"><strong>Todavía no hay precios publicados.</strong>Los locales y cortes ya están disponibles. Un operador debe cargar los precios para comenzar a comparar.</div>';
     return;
   }
   if (!products.length) {
@@ -283,96 +222,12 @@ function renderQuote() {
   if (q)
     $("whatsapp").href =
       `https://wa.me/?text=${encodeURIComponent(summary(q))}`;
-  $("report-help").textContent = state.user.authenticated
+  $("report-help").textContent = session.user.authenticated
     ? "El PDF usa los precios vigentes del servidor al generarse."
     : "Iniciá sesión para descargar tu presupuesto en PDF.";
 }
-function renderSession() {
-  const logged = state.user.authenticated;
-  $("session-actions").innerHTML = logged
-    ? `<span class="session-name" title="${escape(state.user.email)}">${escape(state.user.email)}</span><button id="logout" class="button secondary small">Salir</button>`
-    : '<button class="button small" id="open-login">Ingresar</button>';
-  $("admin-link").hidden = !state.user.admin;
-  $("gestion").hidden = !state.user.admin;
-  renderQuote();
-}
-function openAuth() {
-  state.register = false;
-  renderAuth();
-  $("auth-dialog").showModal();
-}
-function renderAuth() {
-  $("auth-title").textContent = state.register
-    ? "Creá tu cuenta"
-    : "Ingresá a tu cuenta";
-  $("auth-description").textContent = state.register
-    ? "Usá una contraseña de al menos 10 caracteres (máximo 72 bytes)."
-    : "Descargá tu presupuesto y llevalo a la juntada.";
-  $("auth-submit").textContent = state.register ? "Crear cuenta" : "Ingresar";
-  $("auth-toggle").textContent = state.register
-    ? "Ya tengo cuenta. Ingresar"
-    : "¿Primera vez? Creá tu cuenta";
-  $("auth-password").autocomplete = state.register
-    ? "new-password"
-    : "current-password";
-  $("auth-password").minLength = state.register ? 10 : 1;
-  $("auth-error").textContent = "";
-}
-$("auth-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  $("auth-submit").disabled = true;
-  const values = Object.fromEntries(new FormData(event.target));
-  try {
-    if (state.register) {
-      await api("/api/auth/registro", {
-        method: "POST",
-        body: JSON.stringify(values),
-      });
-      state.register = false;
-      renderAuth();
-      $("auth-form").reset();
-      $("auth-description").textContent =
-        "Cuenta creada. Ingresá con tu email y contraseña.";
-    } else {
-      await api("/api/auth/login", {
-        method: "POST",
-        body: new URLSearchParams(values),
-      });
-      await refreshCsrf();
-      state.user = await api("/api/auth/me");
-      renderSession();
-      renderAdmin();
-      $("auth-dialog").close();
-      $("auth-form").reset();
-      notice("Sesión iniciada. Ya podés descargar tu PDF.");
-    }
-  } catch (error) {
-    $("auth-error").textContent = error.message;
-  } finally {
-    $("auth-submit").disabled = false;
-  }
-});
-$("auth-toggle").onclick = () => {
-  state.register = !state.register;
-  renderAuth();
-};
-$("session-actions").onclick = async (event) => {
-  if (event.target.id === "open-login") openAuth();
-  if (event.target.id === "logout") {
-    try {
-      await api("/api/auth/logout", { method: "POST" });
-      state.user = {};
-      state.pdf = null;
-      await refreshCsrf();
-      renderSession();
-      notice("Sesión cerrada.");
-    } catch (error) {
-      notice(error.message, true);
-    }
-  }
-};
 $("download-pdf").onclick = async () => {
-  if (!state.user.authenticated) {
+  if (!session.user.authenticated) {
     openAuth();
     return;
   }
@@ -453,166 +308,12 @@ $("store-results").onclick = (event) => {
   renderStores();
   renderQuote();
 };
-document
-  .querySelectorAll("[data-close]")
-  .forEach(
-    (button) => (button.onclick = () => $(button.dataset.close).close()),
-  );
-
-// The server checks ADMIN independently of this UI.
-let editing = null,
-  deleting = null;
-function adminRows() {
-  return state[
-    $("admin-kind").value === "productos"
-      ? "products"
-      : $("admin-kind").value === "locales"
-        ? "stores"
-        : "prices"
-  ];
-}
-function renderAdmin() {
-  if (!state.user.admin) {
-    $("admin-list").replaceChildren();
-    return;
-  }
-  const kind = $("admin-kind").value;
-  $("admin-list").innerHTML =
-    `<table><thead><tr><th>Registro</th><th>Detalle</th><th>Acciones</th></tr></thead><tbody>${adminRows()
-      .map(
-        (r) =>
-          `<tr><th scope="row">${escape(r.nombre || r.producto.nombre)}</th><td>${kind === "precios" ? `${escape(r.local.nombre)} · ${money(r.precio)} · ${date(r.fecha)}` : escape(r.direccion || "Corte por kilo")}</td><td><div class="admin-actions"><button class="button secondary small" data-edit="${r.id}">Editar</button><button class="text-button" data-delete="${r.id}">Dar de baja</button></div></td></tr>`,
-      )
-      .join(
-        "",
-      )}</tbody></table>${!adminRows().length ? '<p class="empty">Sin registros activos.</p>' : ""}`;
-}
-function field(name, label, type, value = "", attrs = "") {
-  return `<label>${label}<input name="${name}" type="${type}" value="${escape(value)}" ${attrs} required></label>`;
-}
-function edit(id = null) {
-  const kind = $("admin-kind").value;
-  const record = id === null ? {} : adminRows().find((r) => r.id === id);
-  editing = { kind, id };
-  $("edit-title").textContent =
-    id === null ? "Nuevo registro" : "Editar registro";
-  $("admin-error").textContent = "";
-  let html;
-  if (kind === "precios") {
-    const select = (name, label, values, selected) =>
-      `<label>${label}<select name="${name}" required><option value="">Seleccioná…</option>${values.map((v) => `<option value="${v.id}" ${selected === v.id ? "selected" : ""}>${escape(v.nombre)}</option>`).join("")}</select></label>`;
-    html =
-      select("localId", "Local", state.stores, record.local?.id) +
-      select("productoId", "Corte", state.products, record.producto?.id) +
-      field(
-        "precio",
-        "Precio por kilo (ARS)",
-        "number",
-        record.precio,
-        'min="0.01" max="9999999999.99" step="0.01"',
-      ) +
-      field(
-        "fecha",
-        "Fecha del precio",
-        "date",
-        record.fecha ||
-          new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-            .toISOString()
-            .slice(0, 10),
-        'max="' +
-          new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-            .toISOString()
-            .slice(0, 10) +
-          '"',
-      );
-  } else {
-    html = field("nombre", "Nombre", "text", record.nombre, 'maxlength="120"');
-    if (kind === "locales")
-      html +=
-        field(
-          "direccion",
-          "Dirección",
-          "text",
-          record.direccion,
-          'maxlength="200"',
-        ) +
-        field(
-          "latitud",
-          "Latitud",
-          "number",
-          record.coordenada_x,
-          'min="-90" max="90" step="any"',
-        ) +
-        field(
-          "longitud",
-          "Longitud",
-          "number",
-          record.coordenada_y,
-          'min="-180" max="180" step="any"',
-        );
-  }
-  $("admin-fields").innerHTML = html;
-  $("admin-dialog").showModal();
-}
-$("admin-kind").onchange = renderAdmin;
-$("admin-new").onclick = () => edit();
-$("admin-list").onclick = (event) => {
-  const button = event.target.closest("button");
-  if (!button) return;
-  if (button.dataset.edit) edit(+button.dataset.edit);
-  if (button.dataset.delete) {
-    deleting = { kind: $("admin-kind").value, id: +button.dataset.delete };
-    $("delete-error").textContent = "";
-    $("delete-dialog").showModal();
-  }
-};
-$("admin-form").onsubmit = async (event) => {
-  event.preventDefault();
-  const submit = event.target.querySelector("[type=submit]");
-  submit.disabled = true;
-  const data = Object.fromEntries(new FormData(event.target));
-  ["localId", "productoId", "precio", "latitud", "longitud"].forEach((key) => {
-    if (key in data) data[key] = Number(data[key]);
-  });
-  try {
-    await api(
-      `/api/admin/${editing.kind}${editing.id ? `/${editing.id}` : ""}`,
-      { method: editing.id ? "PUT" : "POST", body: JSON.stringify(data) },
-    );
-    $("admin-dialog").close();
-    await load();
-    notice(
-      "Registro guardado. Volvé a calcular tu lista para usar los nuevos precios.",
-    );
-  } catch (error) {
-    $("admin-error").textContent = error.message;
-  } finally {
-    submit.disabled = false;
-  }
-};
-$("confirm-delete").onclick = async () => {
-  $("confirm-delete").disabled = true;
-  try {
-    await api(`/api/admin/${deleting.kind}/${deleting.id}`, {
-      method: "DELETE",
-    });
-    $("delete-dialog").close();
-    await load();
-    notice("Baja lógica aplicada. El registro se conserva en la base.");
-  } catch (error) {
-    $("delete-error").textContent = error.message;
-  } finally {
-    $("confirm-delete").disabled = false;
-  }
-};
+onSessionChange(() => {
+  if (!session.user.authenticated) state.pdf = null;
+  renderQuote();
+});
 async function init() {
-  try {
-    await refreshCsrf();
-    state.user = await api("/api/auth/me");
-    renderSession();
-  } catch (error) {
-    notice(error.message, true);
-  }
+  await initSession();
   await load();
 }
 init();

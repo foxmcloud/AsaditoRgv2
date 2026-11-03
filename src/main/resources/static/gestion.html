@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Gestión del catálogo · Asadito RG</title>
+    <link rel="stylesheet" href="/assets/css/app.css" />
+    <script type="module" src="/assets/js/gestion.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/"
+        >♨ asadito RG<small>GESTIÓN DEL CATÁLOGO</small></a
+      >
+      <nav aria-label="Navegación de gestión">
+        <a href="/">Volver al comparador ↗</a>
+      </nav>
+      <div id="session-actions"></div>
+    </header>
+    <main class="management-page">
+      <div id="notice" role="status" aria-live="polite" hidden></div>
+      <section class="section" id="panel-access">
+        <span class="eyebrow">ACCESO AL PANEL</span>
+        <h1 id="access-title">Ingresá para gestionar el catálogo.</h1>
+        <p id="access-description">
+          Usá tu cuenta de operador o administrador.
+        </p>
+        <button id="open-panel-login" class="button">Ingresar a gestión</button>
+      </section>
+      <section
+        id="gestion"
+        class="section"
+        hidden
+        aria-labelledby="admin-title"
+      >
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow" id="management-role"
+              >GESTIÓN DEL CATÁLOGO</span
+            >
+            <h2 id="admin-title">Mantené los precios al día.</h2>
+            <p id="management-description"></p>
+          </div>
+        </div>
+        <div
+          id="management-summary"
+          class="management-summary"
+          aria-label="Resumen del catálogo"
+        ></div>
+        <div class="admin-toolbar">
+          <button id="refresh-panel" disabled class="button secondary">
+            ↻ Actualizar catálogo
+          </button>
+          <label for="admin-kind"
+            >Gestionar<select id="admin-kind">
+              <option value="precios">Precios</option>
+              <option value="productos">Cortes</option>
+              <option value="locales">Locales</option>
+            </select></label
+          ><button id="admin-new" class="button" hidden>
+            Nuevo registro +
+          </button>
+        </div>
+        <div id="admin-list" class="table-wrap"></div>
+      </section>
+    </main>
+    <footer>
+      <a class="brand" href="/">♨ asadito RG</a>
+      <p>Gestión de cortes, locales y precios · Río Grande</p>
+    </footer>
+    <dialog id="auth-dialog" aria-labelledby="auth-title">
+      <button class="close-dialog" data-close="auth-dialog" aria-label="Cerrar">
+        ×</button
+      ><span class="eyebrow">BIENVENIDO A LA MESA</span>
+      <h2 id="auth-title">Ingresá a tu cuenta</h2>
+      <p id="auth-description" class="muted">
+        Descargá tu presupuesto y llevalo a la juntada.
+      </p>
+      <form id="auth-form">
+        <label
+          >Email<input
+            name="email"
+            type="email"
+            autocomplete="username"
+            maxlength="120"
+            required /></label
+        ><label
+          >Contraseña<input
+            id="auth-password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+            maxlength="72"
+        /></label>
+        <p id="auth-error" class="form-error" role="alert"></p>
+        <button class="button full" type="submit" id="auth-submit">
+          Ingresar
+        </button>
+      </form>
+      <button class="text-button" id="auth-toggle" hidden>
+        ¿Primera vez? Creá tu cuenta
+      </button>
+    </dialog>
+    <dialog id="admin-dialog" aria-labelledby="edit-title">
+      <button
+        class="close-dialog"
+        data-close="admin-dialog"
+        aria-label="Cerrar"
+      >
+        ×
+      </button>
+      <h2 id="edit-title">Nuevo registro</h2>
+      <form id="admin-form">
+        <div id="admin-fields"></div>
+        <p id="admin-error" class="form-error" role="alert"></p>
+        <button type="submit" class="button full">Guardar registro</button>
+      </form>
+    </dialog>
+    <dialog id="delete-dialog" aria-labelledby="delete-title">
+      <h2 id="delete-title">¿Dar de baja el registro?</h2>
+      <p>
+        Dejará de mostrarse en las consultas. El registro seguirá en la base de
+        datos.
+      </p>
+      <p id="delete-error" class="form-error" role="alert"></p>
+      <div class="dialog-actions">
+        <button class="button secondary" data-close="delete-dialog">
+          Cancelar</button
+        ><button class="button" id="confirm-delete">Dar de baja</button>
+      </div>
+    </dialog>
+  </body>
+</html>

@@ -25,10 +25,13 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.authorizeRequests(auth -> auth
-            .antMatchers("/", "/index.html", "/assets/**", "/error", "/api/auth/**").permitAll()
+            .antMatchers("/", "/index.html", "/gestion.html", "/assets/**", "/error", "/api/auth/**").permitAll()
             .antMatchers(HttpMethod.GET, "/api/productos", "/api/locales", "/api/precios", "/api/precios/ultimos").permitAll()
             .antMatchers(HttpMethod.POST, "/api/presupuestos/calcular").permitAll()
-            .antMatchers("/api/admin/**").hasRole("ADMIN")
+            .antMatchers(HttpMethod.POST, "/api/admin/productos", "/api/admin/locales", "/api/admin/precios").hasRole("OPERADOR")
+            .antMatchers(HttpMethod.PUT, "/api/admin/productos/*", "/api/admin/locales/*", "/api/admin/precios/*").hasRole("OPERADOR")
+            .antMatchers(HttpMethod.DELETE, "/api/admin/productos/*", "/api/admin/locales/*", "/api/admin/precios/*").hasRole("ADMIN")
+            .antMatchers("/api/admin/**").denyAll()
             .anyRequest().authenticated())
             // CSRF remains enabled for login, logout, registration and every mutation.
             .formLogin(form -> form.loginProcessingUrl("/api/auth/login")
