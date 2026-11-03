@@ -19,6 +19,12 @@ public class Productos {
     @OneToMany(mappedBy = "producto", fetch = FetchType.EAGER)
     Set<Precios> precios = new HashSet<>();
 
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean activo = true;
+
+    public boolean isActivo() { return activo; }
+    public void setActivo(boolean activo) { this.activo = activo; }
+
     public Productos(){}
 
     public Productos(String nombre){

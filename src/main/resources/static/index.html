@@ -1,164 +1,259 @@
-<!DOCTYPE html>
-<html>
-
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home - AsaditoRG</title>
-    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat:400,400i,700,700i,600,600i">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Alfa+Slab+One">
-    <style>
-        body {
-          padding: 20px;
-        }
-        .card-deck {
-          margin-top: 20px;
-        }
-        .card {
-          margin-bottom: 20px;
-        }
-        .card-header {
-          text-align: center;
-          font-weight: bold;
-        }
-        .btn {
-          font-size: 14px;
-        }
-        .total {
-          font-size: 1.25rem;
-          font-weight: bold;
-          text-align: center;
-        }
-        .fixed-bottom {
-          position: fixed;
-          bottom: 0;
-          width: 100%;
-          z-index: 1000; /* Para asegurarte de que el total esté siempre encima del contenido */
-        }
-    </style>
-</head>
-
-<body>
-
-<div id="app">
-    <nav class="navbar navbar-light navbar-expand-lg fixed-top bg-white clean-navbar">
-        <div class="container"><a class="navbar-brand logo" href="#" style="background-image:url(&quot;assets/img/Logo Asadito RG - PNG.png&quot;);background-color:rgba(255,255,255,0.15);"><img class="img-thumbnail float-left" src="assets/img/Logo Asadito RG - PNG.png" style="font-size:11px;height:57px;width:157px;margin:-10px;"></a>
-            <button
-                class="navbar-toggler" data-toggle="collapse" data-target="#navcol-1"><span class="sr-only">Toggle navigation</span><span class="navbar-toggler-icon"></span></button>
-                <div class="collapse navbar-collapse" id="navcol-1">
-                    <ul class="nav navbar-nav ml-auto"></ul>
-                </div>
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#af4427" />
+    <meta
+      name="description"
+      content="Compará los precios de los cortes en Río Grande, armá tu presupuesto y compartí el asado."
+    />
+    <title>Asadito RG · La juntada empieza acá</title>
+    <link rel="stylesheet" href="/assets/css/app.css" />
+    <script type="module" src="/assets/js/app.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#inicio" aria-label="Asadito RG, inicio"
+        ><span class="brand-mark" aria-hidden="true">♨</span
+        ><span
+          >asadito<span class="brand-rg"> RG</span
+          ><small>RÍO GRANDE · TIERRA DEL FUEGO</small></span
+        ></a
+      >
+      <nav aria-label="Navegación principal">
+        <a href="#comparador">Comparar precios</a
+        ><a href="#calculadora">Mi presupuesto</a
+        ><a href="#gestion" id="admin-link" hidden>Administrar</a>
+      </nav>
+      <div id="session-actions">
+        <button class="button small" id="open-login">Ingresar</button>
+      </div>
+    </header>
+    <main id="inicio">
+      <section class="hero">
+        <div class="hero-content">
+          <span class="eyebrow">EL MEJOR PLAN ES JUNTARNOS</span>
+          <h1>El asado se comparte.<br />El precio <em>se compara.</em></h1>
+          <p>
+            Encontrá tus cortes en los locales de Río Grande y armá un
+            presupuesto a tu medida. Menos cuentas, más sobremesa.
+          </p>
+          <a href="#comparador" class="button"
+            >Armá tu asadito <span aria-hidden="true">↗</span></a
+          >
+          <div class="hero-note">
+            <span aria-hidden="true">✓</span> Precios por kilo · Presupuesto en
+            pesos argentinos
+          </div>
         </div>
-    </nav>
-    <main class="page landing-page">
-        <section class="clean-block clean-hero" style="background-image:url(&quot;assets/img/asadoimagen2.png&quot;);color:rgba(214,214,216,0);">
-            <div class="text">
-                <h2 style="font-family:'Alfa Slab One', cursive;color:#d0983f;font-size:36px;">Bienvenido a Asadito RG</h2>
-                <p style="font-size:21px;font-family:'Alfa Slab One', cursive;color:#c89646;">Esta aplicacion te va a ayudar a generar tu presupuesto para un buen asado para esa juntada con tu familia o amigos</p>
+        <div class="hero-image" role="img" aria-label="Asado a la parrilla">
+          <div class="photo-label">
+            Hecho para la próxima juntada.<br /><strong
+              >Hecho en Río Grande.</strong
+            >
+          </div>
+        </div>
+      </section>
+      <div class="steps" aria-label="Cómo funciona">
+        <span><b>01</b> Compará los cortes</span
+        ><span><b>02</b> Elegí los kilos y el local</span
+        ><span><b>03</b> Descargá y compartí</span>
+      </div>
+      <div id="notice" role="status" aria-live="polite" hidden></div>
+      <section class="section" id="comparador" aria-labelledby="compare-title">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">LOS NÚMEROS SOBRE LA MESA</span>
+            <h2 id="compare-title">¿Dónde conviene comprar?</h2>
+            <p>
+              El menor precio de cada corte, a simple vista. Consultá la fecha
+              antes de comprar.
+            </p>
+          </div>
+          <button class="button secondary small" id="refresh">
+            ↻ Actualizar
+          </button>
+        </div>
+        <div class="filters">
+          <label for="search"
+            >Buscar corte<input
+              id="search"
+              type="search"
+              placeholder="Ej. vacío, chorizo…" /></label
+          ><span class="legend"><i></i> Menor precio publicado por corte</span
+          ><span id="data-count" class="muted"></span>
+        </div>
+        <div id="comparison" class="table-wrap" aria-live="polite">
+          <p class="empty">Cargando precios…</p>
+        </div>
+        <p class="fine-print">
+          Los precios son informativos y pueden cambiar. No incluyen envío. “Sin
+          precio” no significa que el producto sea gratis ni que esté
+          disponible.
+        </p>
+      </section>
+      <section
+        class="section calculator"
+        id="calculadora"
+        aria-labelledby="calculator-title"
+      >
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">QUE NO FALTE NADA</span>
+            <h2 id="calculator-title">Tu próxima juntada, calculada.</h2>
+            <p>Usá la misma lista para comparar el total en cada local.</p>
+          </div>
+          <button id="clear-basket" class="text-button">Vaciar lista</button>
+        </div>
+        <div class="calculator-grid">
+          <div>
+            <div class="panel">
+              <h3>1. Elegí tus cortes</h3>
+              <p class="muted">
+                Ingresá kilos. Podés usar decimales, por ejemplo 1,5 kg.
+              </p>
+              <div id="basket"></div>
             </div>
-        </section>
-        <section class="clean-block clean-info dark">
-            <div class="container">
-                <div class="block-heading">
-                    <h1 style="font-family:'Alfa Slab One', cursive;color:#805A2A;">Como?</h1>
-                    <p style="color:#805A2A;margin-bottom:20px;">Obtenemos los datos de precios que publica la pagina de gobierno PrecioBajo y te mostramos de manera elegante por local y corte todo en uno.</p>
-                    <p style="color:#805a2a;">Adicionalmente vas a poder calcular y generar un reporte en base a cuantos kilos necesitas eligiendo el tipo de corte y de que local. &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
-                        &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;</p>
-                </div>
+            <div class="panel store-panel">
+              <h3>2. Compará la lista completa</h3>
+              <p class="muted">
+                Solo participan en la comparación los locales con precio para
+                todos tus cortes.
+              </p>
+              <button id="calculate" class="button">
+                Calcular y comparar locales
+              </button>
+              <div id="store-results" aria-live="polite"></div>
             </div>
-        </section>
+          </div>
+          <aside class="budget panel" aria-label="Resumen del presupuesto">
+            <span class="eyebrow">TU PRESUPUESTO</span>
+            <h3 id="quote-store">Todavía sin local</h3>
+            <p id="quote-address" class="muted">
+              Elegí tus kilos y calculá para empezar.
+            </p>
+            <div id="quote-lines"></div>
+            <div class="total-row">
+              <span>Total estimado<small>Pesos argentinos · ARS</small></span
+              ><strong id="quote-total">$ —</strong>
+            </div>
+            <button id="download-pdf" class="button full" disabled>
+              Descargar presupuesto PDF ↓</button
+            ><button id="share-pdf" class="button secondary full" hidden>
+              Compartir el PDF…</button
+            ><a
+              id="whatsapp"
+              class="button whatsapp full"
+              target="_blank"
+              rel="noopener noreferrer"
+              hidden
+              >Compartir resumen por WhatsApp ↗</a
+            >
+            <p id="report-help" class="fine-print">
+              Podés comparar sin cuenta. Iniciá sesión para descargar el PDF.
+            </p>
+            <p class="fine-print">
+              El resumen por WhatsApp es texto. Para enviar el archivo,
+              descargalo y adjuntalo o usá “Compartir el PDF” en un dispositivo
+              compatible.
+            </p>
+          </aside>
+        </div>
+      </section>
+      <section
+        id="gestion"
+        class="section"
+        hidden
+        aria-labelledby="admin-title"
+      >
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">ADMINISTRACIÓN</span>
+            <h2 id="admin-title">Mantené los precios al día.</h2>
+            <p>Altas, modificaciones y bajas lógicas del catálogo.</p>
+          </div>
+        </div>
+        <div class="admin-toolbar">
+          <label for="admin-kind"
+            >Gestionar<select id="admin-kind">
+              <option value="precios">Precios</option>
+              <option value="productos">Cortes</option>
+              <option value="locales">Locales</option>
+            </select></label
+          ><button id="admin-new" class="button">Nuevo registro +</button>
+        </div>
+        <div id="admin-list" class="table-wrap"></div>
+      </section>
     </main>
-
-    <div class="container mt-5">
-        <h3>Comparativa de Precios de Cortes de Carne</h3>
-
-        <table class="table d-none d-md-table table-bordered">
-            <thead>
-            <tr>
-                <th>Local</th>
-                <th v-for="producto in productos" :key="producto">{{ producto }}</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr v-for="store in productosInfo" :key="store.localNombre">
-                <td>{{ store.localNombre }}</td>
-                <td v-for="producto in productos" :key="producto">
-                    <!-- Verificamos si el producto está disponible en el local -->
-                    <span v-if="isProductAvailable(store, producto)">
-                            ${{ getProductPrice(store, producto) }}
-                        </span>
-                    <span v-else>
-                            No disponible
-                        </span>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <section>
-
-
-        <div class="container">
-            <h3>A Calcular el asadito!</h3>
-
-            <div class="row">
-                <div class="col-md-4" v-for="(store, storeIndex) in productosInfo" :key="storeIndex">
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <h5>{{ store.localNombre }}</h5>
-                        </div>
-                        <div class="card-body">
-                            <div v-for="(product, productIndex) in store.productos" :key="productIndex" class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6>{{ product.nombre }}</h6>
-                                    <p>Precio: ${{ product.precio.toFixed(2) }}</p>
-                                    <p>Fecha: {{ product.fecha }}</p>
-                                </div>
-                                <div class="d-flex align-items-center">
-                                    <button class="btn btn-danger" @click="decreaseQuantity(store, product)">-</button>
-                                    <span class="mx-3">{{ (product.quantity || 0).toFixed(1) }} kg</span>
-                                    <button class="btn btn-primary" @click="increaseQuantity(store, product)">+</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="fixed-bottom bg-dark text-white py-2">
-                <div class="container d-flex justify-content-between align-items-center">
-                    <h5>Total: ${{ totalPrice }}</h5>
-
-                    <!-- Botón para limpiar las cantidades -->
-                    <button class="btn btn-danger" @click="clearQuantities">Limpiar Cantidades</button>
-
-                    <!-- Botón para generar el PDF -->
-                    <button class="btn btn-primary" @click="generatePDF">Generar PDF</button>
-                </div>
-            </div>
-
-
-        </div>
-    <footer class="page-footer dark">
-        <div class="footer-copyright">
-            <p>© 2025 AsaditoRG</p>
-        </div>
+    <footer>
+      <a class="brand" href="#inicio">♨ asadito RG</a>
+      <p>Una herramienta para planear la juntada, comercio por comercio.</p>
+      <small
+        >Río Grande, Tierra del Fuego · Precios sujetos a confirmación.</small
+      >
     </footer>
-    </section>
-</div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.0/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/script.min.js"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
-            integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
-            crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <script src="assets/js/precioproductos.js"></script>
-</body>
-
+    <dialog id="auth-dialog" aria-labelledby="auth-title">
+      <button class="close-dialog" data-close="auth-dialog" aria-label="Cerrar">
+        ×</button
+      ><span class="eyebrow">BIENVENIDO A LA MESA</span>
+      <h2 id="auth-title">Ingresá a tu cuenta</h2>
+      <p id="auth-description" class="muted">
+        Descargá tu presupuesto y llevalo a la juntada.
+      </p>
+      <form id="auth-form">
+        <label
+          >Email<input
+            name="email"
+            type="email"
+            autocomplete="username"
+            maxlength="120"
+            required /></label
+        ><label
+          >Contraseña<input
+            id="auth-password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+            maxlength="72"
+        /></label>
+        <p id="auth-error" class="form-error" role="alert"></p>
+        <button class="button full" type="submit" id="auth-submit">
+          Ingresar
+        </button>
+      </form>
+      <button class="text-button" id="auth-toggle">
+        ¿Primera vez? Creá tu cuenta
+      </button>
+    </dialog>
+    <dialog id="admin-dialog" aria-labelledby="edit-title">
+      <button
+        class="close-dialog"
+        data-close="admin-dialog"
+        aria-label="Cerrar"
+      >
+        ×
+      </button>
+      <h2 id="edit-title">Nuevo registro</h2>
+      <form id="admin-form">
+        <div id="admin-fields"></div>
+        <p id="admin-error" class="form-error" role="alert"></p>
+        <button type="submit" class="button full">Guardar registro</button>
+      </form>
+    </dialog>
+    <dialog id="delete-dialog" aria-labelledby="delete-title">
+      <h2 id="delete-title">¿Dar de baja el registro?</h2>
+      <p>
+        Dejará de mostrarse en las consultas. El registro seguirá en la base de
+        datos.
+      </p>
+      <p id="delete-error" class="form-error" role="alert"></p>
+      <div class="dialog-actions">
+        <button class="button secondary" data-close="delete-dialog">
+          Cancelar</button
+        ><button class="button" id="confirm-delete">Dar de baja</button>
+      </div>
+    </dialog>
+  </body>
 </html>

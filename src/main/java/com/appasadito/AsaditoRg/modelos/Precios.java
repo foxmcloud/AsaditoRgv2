@@ -5,6 +5,7 @@ import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
 import java.time.LocalDate;
+import java.math.BigDecimal;
 
 @Entity
 public class Precios {
@@ -13,7 +14,8 @@ public class Precios {
     @GenericGenerator(name = "native", strategy = "native")
     private int id;
     private LocalDate fecha;
-    private float precio;
+    @Column(precision = 14, scale = 2)
+    private BigDecimal precio;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name="locales_id")
@@ -23,9 +25,15 @@ public class Precios {
     @JoinColumn(name="productos_id")
     private Productos producto;
 
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean activo = true;
+
+    public boolean isActivo() { return activo; }
+    public void setActivo(boolean activo) { this.activo = activo; }
+
     public Precios(){}
 
-    public Precios(float precio){
+    public Precios(BigDecimal precio){
         this.fecha = LocalDate.now();
         this.precio = precio;
     }
@@ -42,11 +50,11 @@ public class Precios {
         this.fecha = fecha;
     }
 
-    public float getPrecio() {
+    public BigDecimal getPrecio() {
         return precio;
     }
 
-    public void setPrecio(float precio) {
+    public void setPrecio(BigDecimal precio) {
         this.precio = precio;
     }
     @JsonIgnore

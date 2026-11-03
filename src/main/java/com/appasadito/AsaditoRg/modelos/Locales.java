@@ -22,6 +22,12 @@ public class Locales {
     @OneToMany(mappedBy = "local", fetch = FetchType.EAGER)
     Set<Precios> precios = new HashSet<>();
 
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean activo = true;
+
+    public boolean isActivo() { return activo; }
+    public void setActivo(boolean activo) { this.activo = activo; }
+
     public Locales(){}
 
     public Locales(String nombre, String direccion, String coordenada_x, String coordenada_y){
