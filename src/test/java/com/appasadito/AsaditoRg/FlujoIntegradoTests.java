@@ -202,6 +202,21 @@ class FlujoIntegradoTests {
         mvc.perform(post("/api/presupuestos/calcular").with(csrf()).contentType("application/json").content(basket().replace("1.5", "-2"))).andExpect(status().isBadRequest());
         mvc.perform(post("/api/presupuestos/calcular").with(csrf()).contentType("application/json").content(basket().replace("1.5", "1.2345"))).andExpect(status().isBadRequest());
     }
+    @ParameterizedTest @ValueSource(strings = {"0.5", "1", "1.5", "1.50", "1000"})
+    void acceptsOnlyHalfKiloSteps(String quantity) throws Exception {
+        BigDecimal expected = new BigDecimal("10000.01").multiply(new BigDecimal(quantity)).setScale(2, java.math.RoundingMode.HALF_UP);
+        mvc.perform(post("/api/presupuestos/calcular").with(csrf()).contentType("application/json")
+            .content(basket().replace("1.5", quantity)))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(expected.doubleValue()));
+    }
+    @ParameterizedTest @ValueSource(strings = {"0", "0.25", "0.75", "1.2", "1.2345", "-0.5", "1000.5"})
+    void rejectsOtherQuantitiesInCalculationAndPdf(String quantity) throws Exception {
+        for (String endpoint : List.of("calcular", "pdf")) {
+            mvc.perform(post("/api/presupuestos/" + endpoint).with(user("cliente").roles("USER")).with(csrf())
+                .contentType("application/json").content(basket().replace("1.5", quantity)))
+                .andExpect(status().isBadRequest());
+        }
+    }
     @Test void rejectsDuplicatedBasketItems() throws Exception {
         String item = "{\"productoId\":" + product.getId() + ",\"cantidad\":1}";
         mvc.perform(post("/api/presupuestos/calcular").with(csrf()).contentType("application/json")

@@ -810,3 +810,29 @@ dialog form .button {
 .admin-toolbar {
   flex-wrap: wrap;
 }
+
+.quantity-step {
+  width: 34px;
+  height: 38px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--paper);
+  color: var(--orange);
+  font-size: 20px;
+  font-weight: 700;
+}
+.quantity-step:hover:not(:disabled) {
+  background: var(--light-green);
+}
+.quantity input {
+  width: 75px;
+}
+@media (max-width: 540px) {
+  .basket-row {
+    flex-wrap: wrap;
+  }
+  .quantity {
+    gap: 6px;
+  }
+}

@@ -87,7 +87,7 @@ El navegador manda localId y una lista de productoId/cantidad. No manda precios 
 
 El dinero usa BigDecimal y numeric(14,2). Cada subtotal se calcula como precio por kilo por cantidad y se redondea a dos decimales con HALF_UP; el total suma los subtotales ya redondeados. Ejemplo: 10000,01 por 1,5 kg da 15000,015 y se informa 15000,02. No uses float para dinero.
 
-Las cantidades admiten entre 0,001 y 1000 kg, hasta tres decimales. Se rechazan cortes duplicados, listas vacías, más de 100 ítems, relaciones inexistentes y cortes sin precio en el local. La pantalla permite cero para dejar un corte fuera de la lista; solo envía los positivos.
+Las cantidades admiten entre 0,5 y 1000 kg, exclusivamente en múltiplos de 0,5 kg. Los botones + y − suman y restan medio kilo; el backend valida la misma regla para cálculo y PDF. Se rechazan cortes duplicados, listas vacías, más de 100 ítems, relaciones inexistentes y cortes sin precio en el local. La pantalla permite cero para dejar un corte fuera de la lista; solo envía los positivos.
 
 Si cambia la lista o se actualiza el catálogo se invalida el presupuesto mostrado y hay que recalcular. Los locales con listas incompletas nunca se presentan como opciones más baratas. Los precios de fechas anteriores no se marcan como ofertas actuales: la fecha se muestra explícitamente.
 
@@ -157,7 +157,7 @@ Ensayo manual recomendado:
 3. Con OPERADOR, crear y editar productos, locales y precios. Verificar que no vea botones de baja y que DELETE directo sea rechazado. Cambiar a ADMIN, verificar que no pueda crear/editar y dar de baja. Revisar la fila conservada en la base.
 4. Publicar un corte en dos locales: 10000 y 12000 por kilo. Con 1,5 kg, comprobar 15000 y 18000. El primero debe encabezar el ranking.
 5. Agregar un segundo corte sin precio en uno de los locales: ese comercio debe aparecer incompleto, sin total competitivo.
-6. Intentar datos vacíos, precio negativo, fecha futura, coordenada 91 de latitud, cantidad negativa y cuatro decimales. Verificar rechazo en Java aunque se omita el HTML.
+6. Intentar datos vacíos, precio negativo, fecha futura, coordenada 91 de latitud, cantidad negativa y cantidades que no sean múltiplos de 0,5 (por ejemplo 0,25 o 1,2 kg). Verificar rechazo en Java aunque se omita el HTML.
 7. Descargar PDF y comparar sus cantidades e importes con los precios del servidor. Abrirlo en un lector real.
 8. Abrir el enlace WhatsApp y revisar el texto sin enviarlo. En un móvil compatible, probar el menú de compartir archivo.
 9. Probar ancho de pantalla de 390 px, navegación por teclado, cierre de diálogos y etiquetas de formularios.

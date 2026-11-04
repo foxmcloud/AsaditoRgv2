@@ -97,7 +97,7 @@ function renderBasket() {
     ? state.products
         .map(
           (p) =>
-            `<div class="basket-row"><label for="kg-${p.id}">${escape(p.nombre)}</label><div class="quantity"><input type="number" id="kg-${p.id}" data-product="${p.id}" min="0" max="1000" step="0.001" inputmode="decimal" value="${state.quantities[p.id] || 0}" aria-label="Kilos de ${escape(p.nombre)}"><span>kg</span></div></div>`,
+            `<div class="basket-row"><label for="kg-${p.id}">${escape(p.nombre)}</label><div class="quantity"><button type="button" class="quantity-step" data-step="-0.5" data-product="${p.id}" aria-label="Restar 0,5 kg de ${escape(p.nombre)}" ${!(state.quantities[p.id] > 0) ? "disabled" : ""}>−</button><input type="number" id="kg-${p.id}" data-product="${p.id}" min="0" max="1000" step="0.5" inputmode="decimal" value="${state.quantities[p.id] || 0}" aria-label="Kilos de ${escape(p.nombre)}"><span>kg</span><button type="button" class="quantity-step" data-step="0.5" data-product="${p.id}" aria-label="Sumar 0,5 kg de ${escape(p.nombre)}" ${state.quantities[p.id] >= 1000 ? "disabled" : ""}>+</button></div></div>`,
         )
         .join("")
     : '<p class="empty">No hay cortes disponibles.</p>';
@@ -115,14 +115,11 @@ async function calculate() {
   if (
     Object.values(state.quantities).some(
       (q) =>
-        !Number.isFinite(q) ||
-        q < 0 ||
-        q > 1000 ||
-        Math.abs(q * 1000 - Math.round(q * 1000)) > 0.000001,
+        !Number.isFinite(q) || q < 0 || q > 1000 || !Number.isInteger(q * 2),
     )
   ) {
     notice(
-      "Revisá los kilos: usá valores de 0 a 1000 con hasta tres decimales.",
+      "Revisá los kilos: solo se permiten incrementos de 0,5 kg, hasta 1000 kg.",
       true,
     );
     return;
@@ -130,18 +127,6 @@ async function calculate() {
   const request = payload();
   if (!request.items.length) {
     notice("Elegí al menos un corte e ingresá los kilos.", true);
-    return;
-  }
-  if (
-    request.items.some(
-      (i) =>
-        !Number.isFinite(i.cantidad) ||
-        i.cantidad > 1000 ||
-        i.cantidad < 0.001 ||
-        Math.abs(i.cantidad * 1000 - Math.round(i.cantidad * 1000)) > 0.000001,
-    )
-  ) {
-    notice("Ingresá entre 0,001 y 1000 kilos, con hasta tres decimales.", true);
     return;
   }
   state.busy = true;
@@ -288,7 +273,25 @@ $("basket").oninput = (event) => {
   if (!id) return;
   state.quantities[id] =
     event.target.value === "" ? 0 : Number(event.target.value);
+  const row = event.target.closest(".quantity");
+  const quantity = state.quantities[id];
+  row.querySelector('[data-step="-0.5"]').disabled = quantity <= 0;
+  row.querySelector('[data-step="0.5"]').disabled = quantity >= 1000;
   invalidate();
+};
+$("basket").onclick = (event) => {
+  const button = event.target.closest("button[data-step]");
+  if (!button) return;
+  const input = $("kg-" + button.dataset.product);
+  if (!input.checkValidity()) {
+    input.reportValidity();
+    return;
+  }
+  input.value = Math.min(
+    1000,
+    Math.max(0, Number(input.value) + Number(button.dataset.step)),
+  );
+  input.dispatchEvent(new Event("input", { bubbles: true }));
 };
 $("calculate").onclick = calculate;
 $("clear-basket").onclick = () => {
