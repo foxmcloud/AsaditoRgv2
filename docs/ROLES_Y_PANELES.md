@@ -52,3 +52,13 @@ Probá un ADMIN creando, editando y dando de baja un corte/local. Ingresá como 
 - /gestion.html#precios: OPERADOR carga valores por kilo y fecha para cortes/locales existentes. ADMIN consulta el historial sin acciones de escritura.
 
 El acceso directo a otro apartado no otorga permisos. Para el operador se mantiene el apartado Precios aunque se intente abrir un hash de cortes/locales. Las búsquedas y filtros no modifican registros. El administrador debe crear un corte y un local antes de que el operador pueda publicar precios. Dar de baja un corte/local oculta sus precios de las consultas públicas y preserva sus registros históricos.
+
+## Crear operadores desde el panel (recomendado)
+
+1. Ingresá con una cuenta ADMIN y abrí /gestion.html#operadores.
+2. Tocá Crear operador e ingresá un email nuevo, una contraseña y su confirmación.
+3. La contraseña debe tener al menos 10 caracteres y no superar 72 bytes UTF-8. El email no puede pertenecer a otra cuenta.
+4. Guardá. La confirmación aparece como globo flotante y el operador se incorpora a la lista, donde podés buscar por email.
+5. El operador ya puede iniciar sesión y cargar precios. Su contraseña queda almacenada con BCrypt; la lista y la respuesta de creación nunca la devuelven ni incluyen el hash.
+
+Solo ADMIN puede usar GET/POST /api/admin/operadores. El rol OPERADOR se asigna en el servidor y no se acepta un rol enviado desde el formulario o la API. Un USER u OPERADOR no puede crear cuentas de gestión ni listar operadores. No se agregaron acciones para modificar/eliminar cuentas ni cambiar contraseñas: este apartado permite crearlas y consultarlas. Las contraseñas se limpian del formulario al cerrarlo. Las variables de bootstrap siguen siendo una alternativa para la configuración inicial, pero no se necesitan para cada operador nuevo.

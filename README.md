@@ -11,7 +11,7 @@ Requisitos: JDK completo 17 recomendado (código compatible con Java 11), Postgr
 3. Si usás una base de la versión anterior, respaldarla, detener la aplicación y ejecutar `docs/migracion-v2.sql` antes del primer arranque. No ejecutar sobre producción sin revisar la migración.
 4. Para crear el primer administrador, configurar `ASADITO_ADMIN_EMAIL` y `ASADITO_ADMIN_PASSWORD` (10 caracteres mínimo, 72 bytes UTF-8 máximo). No hay una contraseña predeterminada. Una vez creado el administrador, retirar esas dos variables y reiniciar. El registro público solo crea usuarios con rol USER.
 5. Ejecutar `bash gradlew bootRun` y abrir el puerto configurado (`8080` por defecto) desde tu entorno local.
-6. Para crear el primer operador, configurar `ASADITO_OPERADOR_EMAIL` y `ASADITO_OPERADOR_PASSWORD`, con un email distinto al del administrador y una contraseña de al menos 10 caracteres (máximo 72 bytes UTF-8). Después de crearlo, retirar las variables. Ingresar como operador y cargar precios en la página independiente `/gestion.html` (“Panel de operador”). Se crean 8 cortes y 13 locales iniciales; no se inventan precios ni se importan los Excel automáticamente.
+6. Ingresar como ADMIN en `/gestion.html#operadores` y usar **Crear operador**. Definir un email nuevo y una contraseña propia (mínimo 10 caracteres, máximo 72 bytes UTF-8). Esa cuenta podrá ingresar al Panel de operador y cargar precios. Como alternativa inicial se conservan `ASADITO_OPERADOR_EMAIL`/`ASADITO_OPERADOR_PASSWORD`; después de crear la cuenta, retirar esas variables. Se crean 8 cortes y 13 locales iniciales; no se inventan precios ni se importan los Excel automáticamente.
 
 En el entorno cloud ya preparado:
 
@@ -46,7 +46,7 @@ La página pública `/` contiene solo comparador, calculadora y reportes. La ges
 | --- | --- | --- |
 | USER | Sin gestión | Comparar, calcular y descargar PDF con sesión |
 | OPERADOR | Panel de operador | Solo cargar precios nuevos |
-| ADMIN | Administrar catálogo | Agregar, modificar y dar de baja cortes/locales; consultar precios |
+| ADMIN | Administrar catálogo | Gestionar cortes/locales, crear operadores y consultar precios |
 
 Los roles se validan en Spring Security por método y ruta, además de ocultar los botones que no corresponden. Las cuentas existentes conservan su rol; ADMIN gestiona cortes/locales y OPERADOR publica precios. No hay que cambiar el esquema de la base.
 

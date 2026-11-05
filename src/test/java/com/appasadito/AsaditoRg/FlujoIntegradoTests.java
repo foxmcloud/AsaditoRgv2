@@ -169,6 +169,68 @@ class FlujoIntegradoTests {
             .andExpect(jsonPath("$.admin").value(role.equals("ADMIN")))
             .andExpect(jsonPath("$.operador").value(role.equals("OPERADOR")));
     }
+    @Test void adminCreatesOperatorAndNewAccountCanLogin() throws Exception {
+        String password = "ClaveOperadorSegura123";
+        mvc.perform(post("/api/admin/operadores").with(user("admin").roles("ADMIN")).with(csrf()).contentType("application/json")
+            .content("{\"email\":\"NuevoOperador@example.com\",\"password\":\"" + password + "\"}"))
+            .andExpect(status().isCreated()).andExpect(jsonPath("$.rol").value("OPERADOR"))
+            .andExpect(jsonPath("$.email").value("nuevooperador@example.com"))
+            .andExpect(jsonPath("$.password").doesNotExist()).andExpect(jsonPath("$.passwordHash").doesNotExist());
+        Usuario operator = users.findByEmail("nuevooperador@example.com").orElseThrow();
+        assertEquals("OPERADOR", operator.getRol());
+        assertTrue(encoder.matches(password, operator.getPasswordHash()));
+        assertNotEquals(password, operator.getPasswordHash());
+        org.springframework.security.test.context.TestSecurityContextHolder.clearContext();
+        MvcResult result = mvc.perform(post("/api/auth/login").with(csrf()).param("email", operator.getEmail()).param("password", password))
+            .andExpect(status().isNoContent()).andReturn();
+        MockHttpSession operatorSession = (MockHttpSession) result.getRequest().getSession(false);
+        mvc.perform(get("/api/auth/me").session(operatorSession)).andExpect(jsonPath("$.operador").value(true)).andExpect(jsonPath("$.admin").value(false));
+    }
+    @Test @WithMockUser(roles = "ADMIN") void operatorListingOnlyReturnsOperatorsWithoutHashes() throws Exception {
+        users.saveAndFlush(new Usuario("list-user@example.com", encoder.encode("UnaClaveSegura123"), "USER"));
+        users.saveAndFlush(new Usuario("list-admin@example.com", encoder.encode("UnaClaveSegura123"), "ADMIN"));
+        users.saveAndFlush(new Usuario("list-operator@example.com", encoder.encode("UnaClaveSegura123"), "OPERADOR"));
+        mvc.perform(get("/api/admin/operadores")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].email").value("list-operator@example.com"))
+            .andExpect(jsonPath("$[0].passwordHash").doesNotExist()).andExpect(jsonPath("$[0].password").doesNotExist());
+    }
+    @ParameterizedTest @ValueSource(strings = {"USER", "OPERADOR"})
+    void nonAdminsCannotCreateOrListOperators(String role) throws Exception {
+        mvc.perform(get("/api/admin/operadores").with(user("staff").roles(role))).andExpect(status().isForbidden());
+        mvc.perform(post("/api/admin/operadores").with(user("staff").roles(role)).with(csrf())
+            .contentType("application/json").content("{\"email\":\"no@example.com\",\"password\":\"UnaClaveSegura123\"}"))
+            .andExpect(status().isForbidden());
+        assertFalse(users.existsByEmail("no@example.com"));
+    }
+    @Test void anonymousCannotCreateOperators() throws Exception {
+        mvc.perform(get("/api/admin/operadores")).andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/admin/operadores").with(csrf()).contentType("application/json")
+            .content("{\"email\":\"no@example.com\",\"password\":\"UnaClaveSegura123\"}"))
+            .andExpect(status().isUnauthorized());
+    }
+    @Test @WithMockUser(roles = "ADMIN") void creatingOperatorRequiresCsrfAndDoesNotAllowRoleInjection() throws Exception {
+        mvc.perform(post("/api/admin/operadores").contentType("application/json")
+            .content("{\"email\":\"no@example.com\",\"password\":\"UnaClaveSegura123\"}"))
+            .andExpect(status().isForbidden());
+        mvc.perform(post("/api/admin/operadores").with(csrf()).contentType("application/json")
+            .content("{\"email\":\"no@example.com\",\"password\":\"UnaClaveSegura123\",\"rol\":\"ADMIN\"}"))
+            .andExpect(status().isBadRequest());
+    }
+    @Test @WithMockUser(roles = "ADMIN") void creatingOperatorValidatesPasswordAndNeverOverwritesAccounts() throws Exception {
+        users.saveAndFlush(new Usuario("existing@example.com", encoder.encode("UnaClaveSegura123"), "USER"));
+        mvc.perform(post("/api/admin/operadores").with(csrf()).contentType("application/json")
+            .content("{\"email\":\"EXISTING@example.com\",\"password\":\"OtraClaveSegura123\"}"))
+            .andExpect(status().isConflict());
+        assertEquals("USER", users.findByEmail("existing@example.com").orElseThrow().getRol());
+        for (String password : List.of("corta", "á".repeat(37))) {
+            mvc.perform(post("/api/admin/operadores").with(csrf()).contentType("application/json")
+                .content("{\"email\":\"no@example.com\",\"password\":\"" + password + "\"}"))
+                .andExpect(status().isBadRequest());
+        }
+        mvc.perform(post("/api/admin/operadores").with(csrf()).contentType("application/json")
+            .content("{\"email\":\"email-invalido\",\"password\":\"UnaClaveSegura123\"}"))
+            .andExpect(status().isBadRequest());
+    }
     @Test void bootstrapCreatesStaffWithoutChangingExistingPasswords() {
         AdminBootstrap bootstrap = new AdminBootstrap(users, encoder, validator);
         ReflectionTestUtils.setField(bootstrap, "email", "jefe@example.com");

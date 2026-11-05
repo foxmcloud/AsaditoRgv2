@@ -10,8 +10,17 @@ import {
   onSessionChange,
   initSession,
 } from "./session.js";
-const state = { products: [], stores: [], prices: [] };
+const state = { products: [], stores: [], prices: [], operators: [] };
 const sections = {
+  operadores: {
+    title: "Operadores",
+    singular: "operador",
+    action: "Crear operador",
+    description: "Creá las cuentas del equipo que publica los precios.",
+    search: "Buscar por email…",
+    guidance:
+      "Cada cuenta tendrá únicamente el rol OPERADOR. Definí una contraseña de al menos 10 caracteres (máximo 72 bytes UTF-8).",
+  },
   precios: {
     title: "Precios",
     singular: "precio",
@@ -47,7 +56,8 @@ let activeKind = Object.hasOwn(sections, location.hash.slice(1))
   : "precios";
 const canCreate = (kind) =>
   kind === "precios" ? session.user.operador : session.user.admin;
-const canEdit = (kind) => session.user.admin && kind !== "precios";
+const canEdit = (kind) =>
+  session.user.admin && ["productos", "locales"].includes(kind);
 const canDelete = canEdit;
 let loadRevision = 0;
 async function load() {
@@ -56,15 +66,16 @@ async function load() {
   $("refresh-panel").disabled = true;
   $("admin-list").setAttribute("aria-busy", "true");
   try {
-    const [products, stores, prices] = await Promise.all(
-      ["productos", "locales", "precios"].map((p) => api(`/api/${p}`)),
-    );
+    const [products, stores, prices, operators] = await Promise.all([
+      ...["productos", "locales", "precios"].map((p) => api(`/api/${p}`)),
+      session.user.admin ? api("/api/admin/operadores") : Promise.resolve([]),
+    ]);
     if (
       revision !== loadRevision ||
       !(session.user.operador || session.user.admin)
     )
       return;
-    Object.assign(state, { products, stores, prices });
+    Object.assign(state, { products, stores, prices, operators });
     const selected = $("store-filter").value;
     $("store-filter").innerHTML =
       '<option value="">Todos los locales</option>' +
@@ -106,10 +117,10 @@ function renderManagementSession() {
     : "PANEL DE ADMINISTRADOR";
   $("admin-title").textContent = session.user.operador
     ? "Cargá los precios del día."
-    : "Administrá cortes y locales.";
+    : "Administrá tu catálogo y tu equipo.";
   $("management-description").textContent = session.user.operador
     ? "Publicá precios para los cortes y locales disponibles. Cada carga conserva el historial."
-    : "Agregá, modificá o da de baja cortes y locales. Los precios los carga el operador.";
+    : "Gestioná cortes y locales, y creá cuentas de operadores para cargar precios.";
   if (session.user.operador && !session.user.admin && activeKind !== "precios")
     activeKind = "precios";
   $("admin-new").hidden = !canCreate(activeKind);
@@ -119,7 +130,13 @@ function renderManagementSession() {
   )
     $("admin-dialog").close();
   if (!session.user.admin) $("delete-dialog").close();
-  if (!staff) Object.assign(state, { products: [], stores: [], prices: [] });
+  if (!staff)
+    Object.assign(state, {
+      products: [],
+      stores: [],
+      prices: [],
+      operators: [],
+    });
   renderAdmin();
   if (staff) load();
 }
@@ -127,6 +144,7 @@ function renderManagementSession() {
 let editing = null,
   deleting = null;
 function adminRows() {
+  if (activeKind === "operadores") return state.operators;
   return state[
     activeKind === "productos"
       ? "products"
@@ -180,9 +198,11 @@ function renderAdmin() {
   const store = $("store-filter").value;
   const rows = adminRows().filter((r) => {
     const text =
-      activeKind === "precios"
-        ? `${r.producto.nombre} ${r.local.nombre}`
-        : `${r.nombre} ${r.direccion || ""}`;
+      activeKind === "operadores"
+        ? r.email
+        : activeKind === "precios"
+          ? `${r.producto.nombre} ${r.local.nombre}`
+          : `${r.nombre} ${r.direccion || ""}`;
     return (
       text.toLocaleLowerCase("es").includes(search) &&
       (activeKind !== "precios" || !store || String(r.local.id) === store)
@@ -192,20 +212,24 @@ function renderAdmin() {
     `${rows.length} de ${adminRows().length} registros`;
   $("clear-filters").hidden = !search && !store;
   const headers =
-    activeKind === "precios"
-      ? ["Corte", "Local", "Precio / kg", "Fecha"]
-      : activeKind === "locales"
-        ? ["Local", "Dirección", "Coordenadas"]
-        : ["Corte", "Referencia"];
+    activeKind === "operadores"
+      ? ["Email", "Rol"]
+      : activeKind === "precios"
+        ? ["Corte", "Local", "Precio / kg", "Fecha"]
+        : activeKind === "locales"
+          ? ["Local", "Dirección", "Coordenadas"]
+          : ["Corte", "Referencia"];
   const hasActions = canEdit(activeKind) || canDelete(activeKind);
   const actions = (r) =>
     `<div class="admin-actions">${canEdit(activeKind) ? `<button class="button secondary small" data-edit="${r.id}" aria-label="Editar ${escape(r.nombre || r.producto.nombre)}">Editar</button>` : ""}${canDelete(activeKind) ? `<button class="text-button" data-delete="${r.id}" aria-label="Dar de baja ${escape(r.nombre || r.producto.nombre)}">Dar de baja</button>` : ""}</div>`;
   const cells = (r) =>
-    activeKind === "precios"
-      ? `<th scope="row">${escape(r.producto.nombre)}</th><td>${escape(r.local.nombre)}</td><td class="price-cell">${money(r.precio)}</td><td>${date(r.fecha)}</td>`
-      : activeKind === "locales"
-        ? `<th scope="row">${escape(r.nombre)}</th><td>${escape(r.direccion)}</td><td class="muted">${escape(r.coordenada_x)}, ${escape(r.coordenada_y)}</td>`
-        : `<th scope="row">${escape(r.nombre)}</th><td class="muted">Corte #${r.id} · Precio por kilo</td>`;
+    activeKind === "operadores"
+      ? `<th scope="row">${escape(r.email)}</th><td><span class="operator-role">OPERADOR</span></td>`
+      : activeKind === "precios"
+        ? `<th scope="row">${escape(r.producto.nombre)}</th><td>${escape(r.local.nombre)}</td><td class="price-cell">${money(r.precio)}</td><td>${date(r.fecha)}</td>`
+        : activeKind === "locales"
+          ? `<th scope="row">${escape(r.nombre)}</th><td>${escape(r.direccion)}</td><td class="muted">${escape(r.coordenada_x)}, ${escape(r.coordenada_y)}</td>`
+          : `<th scope="row">${escape(r.nombre)}</th><td class="muted">Corte #${r.id} · Precio por kilo</td>`;
   $("admin-list").innerHTML = rows.length
     ? `<table><caption class="sr-only">Registros de ${section.title}</caption><thead><tr>${headers.map((h) => `<th scope="col">${h}</th>`).join("")}${hasActions ? '<th scope="col">Acciones</th>' : ""}</tr></thead><tbody>${rows.map((r) => `<tr>${cells(r)}${hasActions ? `<td>${actions(r)}</td>` : ""}</tr>`).join("")}</tbody></table>`
     : `<div class="empty"><strong>${adminRows().length ? "No encontramos coincidencias." : "Todavía no hay registros en este apartado."}</strong>${adminRows().length ? "Probá con otra búsqueda o limpiá los filtros." : session.user.operador ? "Usá el botón de arriba para cargar la primera información." : "Cuando el operador cargue información, aparecerá acá."}</div>`;
@@ -242,7 +266,30 @@ function edit(id = null) {
   $("edit-help").textContent = sections[kind].guidance;
   $("admin-error").textContent = "";
   let html;
-  if (kind === "precios") {
+  if (kind === "operadores") {
+    html =
+      field(
+        "email",
+        "Email del operador",
+        "email",
+        "",
+        'maxlength="120" autocomplete="username"',
+      ) +
+      field(
+        "password",
+        "Contraseña",
+        "password",
+        "",
+        'minlength="10" maxlength="72" autocomplete="new-password"',
+      ) +
+      field(
+        "passwordConfirm",
+        "Repetir contraseña",
+        "password",
+        "",
+        'minlength="10" maxlength="72" autocomplete="new-password"',
+      );
+  } else if (kind === "precios") {
     const select = (name, label, values, selected) =>
       `<label>${label}<select name="${name}" required><option value="">Seleccioná…</option>${values.map((v) => `<option value="${v.id}" ${selected === v.id ? "selected" : ""}>${escape(v.nombre)}</option>`).join("")}</select></label>`;
     html =
@@ -298,6 +345,10 @@ function edit(id = null) {
   $("admin-fields").innerHTML = html;
   $("admin-dialog").showModal();
 }
+$("admin-dialog").addEventListener("close", () => {
+  $("admin-form").reset();
+  $("admin-fields").replaceChildren();
+});
 $("admin-new").onclick = () => edit();
 $("admin-list").onclick = (event) => {
   const button = event.target.closest("button");
@@ -324,6 +375,21 @@ $("admin-form").onsubmit = async (event) => {
   submit.disabled = true;
   submit.textContent = "Guardando…";
   const data = Object.fromEntries(new FormData(event.target));
+  const operatorAccount = editing.kind === "operadores";
+  if (
+    operatorAccount &&
+    (data.password !== data.passwordConfirm ||
+      new TextEncoder().encode(data.password).length > 72)
+  ) {
+    $("admin-error").textContent =
+      data.password !== data.passwordConfirm
+        ? "Las contraseñas no coinciden."
+        : "La contraseña no puede superar 72 bytes UTF-8.";
+    submit.disabled = false;
+    submit.textContent = "Guardar registro";
+    return;
+  }
+  delete data.passwordConfirm;
   ["localId", "productoId", "precio", "latitud", "longitud"].forEach((key) => {
     if (key in data) data[key] = Number(data[key]);
   });
@@ -335,7 +401,9 @@ $("admin-form").onsubmit = async (event) => {
     $("admin-dialog").close();
     await load();
     notice(
-      "Registro guardado. La información ya está disponible en el comparador.",
+      operatorAccount
+        ? "Operador creado. Ya puede iniciar sesión con sus credenciales."
+        : "Registro guardado. La información ya está disponible en el comparador.",
     );
   } catch (error) {
     $("admin-error").textContent = error.message;

@@ -298,3 +298,22 @@
     margin-bottom: 22px;
   }
 }
+
+@media (max-width: 760px) {
+  .control-sidebar nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .control-sidebar nav:has(a[data-section="operadores"][hidden]) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.operator-role {
+  display: inline-block;
+  color: var(--green);
+  background: var(--light-green);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 700;
+}
