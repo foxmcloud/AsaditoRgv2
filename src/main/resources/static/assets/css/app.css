@@ -576,16 +576,102 @@ dialog form .button {
   font-size: 11px;
 }
 #notice {
-  max-width: 1100px;
-  margin: 15px auto;
-  padding: 14px 20px;
+  position: fixed;
+  z-index: 10000;
+  top: 22px;
+  right: 22px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(70vh, 480px);
+  overflow: auto;
+  margin: 0;
+  padding: 18px 14px 18px 18px;
+  border: 1px solid #d9e4d4;
   border-left: 4px solid var(--green);
-  background: var(--light-green);
+  border-radius: 16px;
+  background: var(--paper);
+  box-shadow:
+    0 12px 42px #26352426,
+    0 2px 8px #2635240d;
   font-size: 13px;
+  line-height: 1.6;
+  animation: toast-appear 0.2s ease-out;
+}
+.toast-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 29px;
+  height: 29px;
+  border-radius: 50%;
+  background: var(--light-green);
+  color: var(--green);
+  font-size: 17px;
+  font-weight: 700;
+}
+.toast-content {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.toast-content strong {
+  display: block;
+  color: var(--green);
+  margin-bottom: 3px;
+}
+.toast-content span {
+  display: block;
+  color: var(--ink);
+}
+.toast-close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 24px;
+  line-height: 1;
+}
+.toast-close:hover {
+  background: #f0ede3;
 }
 #notice.error {
+  border-color: #ecd3ca;
+  border-left-color: var(--orange);
+}
+#notice.error .toast-icon {
   background: #ffede8;
-  border-color: var(--orange);
+  color: var(--orange);
+}
+#notice.error strong {
+  color: var(--orange);
+}
+@keyframes toast-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 540px) {
+  #notice {
+    top: auto;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    right: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #notice {
+    animation: none;
+  }
 }
 .session-name {
   max-width: 140px;

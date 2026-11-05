@@ -21,10 +21,54 @@ export const escape = (value) =>
         c
       ],
   );
+const notification = $("notice");
+let noticeTimeout;
+let noticeIsError = false;
+function dismissNotice() {
+  clearTimeout(noticeTimeout);
+  notification.hidden = true;
+}
+function scheduleNoticeDismissal() {
+  clearTimeout(noticeTimeout);
+  if (
+    !noticeIsError &&
+    !notification.hidden &&
+    !notification.matches(":hover") &&
+    !notification.contains(document.activeElement)
+  ) {
+    noticeTimeout = setTimeout(dismissNotice, 5000);
+  }
+}
+notification.addEventListener("pointerenter", () =>
+  clearTimeout(noticeTimeout),
+);
+notification.addEventListener("pointerleave", scheduleNoticeDismissal);
+notification.addEventListener("focusin", () => clearTimeout(noticeTimeout));
+notification.addEventListener("focusout", scheduleNoticeDismissal);
 export function notice(message, error = false) {
-  $("notice").textContent = message;
-  $("notice").className = error ? "error" : "";
-  $("notice").hidden = false;
+  clearTimeout(noticeTimeout);
+  noticeIsError = error;
+  const icon = document.createElement("span");
+  icon.className = "toast-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = error ? "!" : "✓";
+  const content = document.createElement("div");
+  content.className = "toast-content";
+  const title = document.createElement("strong");
+  title.textContent = error ? "No se pudo completar" : "Listo";
+  const text = document.createElement("span");
+  text.textContent = message;
+  content.append(title, text);
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "toast-close";
+  close.setAttribute("aria-label", "Cerrar notificación");
+  close.textContent = "×";
+  close.onclick = dismissNotice;
+  notification.replaceChildren(icon, content, close);
+  notification.className = error ? "toast error" : "toast";
+  notification.hidden = false;
+  scheduleNoticeDismissal();
 }
 export async function refreshCsrf() {
   const response = await fetch("/api/auth/csrf", {
