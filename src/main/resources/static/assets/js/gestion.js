@@ -11,11 +11,46 @@ import {
   initSession,
 } from "./session.js";
 const state = { products: [], stores: [], prices: [] };
+const sections = {
+  precios: {
+    title: "Precios",
+    singular: "precio",
+    action: "Publicar precio",
+    description:
+      "Cargá el valor por kilo de cada corte y su fecha de referencia.",
+    search: "Buscar por corte o comercio…",
+    guidance:
+      "Cada precio pertenece a un corte y un local. Una nueva publicación conserva el historial; editar corrige el registro elegido.",
+  },
+  productos: {
+    title: "Cortes",
+    singular: "corte",
+    action: "Agregar corte",
+    description:
+      "Organizá los productos que la gente encuentra en el comparador.",
+    search: "Buscar un corte…",
+    guidance:
+      "Usá nombres claros y evitá duplicados. Los precios se cargan por separado en el apartado Precios.",
+  },
+  locales: {
+    title: "Locales",
+    singular: "local",
+    action: "Agregar local",
+    description: "Mantené los datos de los comercios y sus ubicaciones.",
+    search: "Buscar por nombre o dirección…",
+    guidance:
+      "Verificá la dirección y las coordenadas antes de guardar. El local quedará disponible para publicar precios.",
+  },
+};
+let activeKind = Object.hasOwn(sections, location.hash.slice(1))
+  ? location.hash.slice(1)
+  : "precios";
 let loadRevision = 0;
 async function load() {
   const revision = ++loadRevision;
   if (!(session.user.operador || session.user.admin)) return;
   $("refresh-panel").disabled = true;
+  $("admin-list").setAttribute("aria-busy", "true");
   try {
     const [products, stores, prices] = await Promise.all(
       ["productos", "locales", "precios"].map((p) => api(`/api/${p}`)),
@@ -26,11 +61,28 @@ async function load() {
     )
       return;
     Object.assign(state, { products, stores, prices });
+    const selected = $("store-filter").value;
+    $("store-filter").innerHTML =
+      '<option value="">Todos los locales</option>' +
+      stores
+        .map(
+          (store) =>
+            `<option value="${store.id}">${escape(store.nombre)}</option>`,
+        )
+        .join("");
+    $("store-filter").value = stores.some(
+      (store) => String(store.id) === selected,
+    )
+      ? selected
+      : "";
     renderAdmin();
   } catch (error) {
     notice(error.message, true);
   } finally {
-    if (revision === loadRevision) $("refresh-panel").disabled = false;
+    if (revision === loadRevision) {
+      $("refresh-panel").disabled = false;
+      $("admin-list").setAttribute("aria-busy", "false");
+    }
   }
 }
 function renderManagementSession() {
@@ -66,9 +118,9 @@ let editing = null,
   deleting = null;
 function adminRows() {
   return state[
-    $("admin-kind").value === "productos"
+    activeKind === "productos"
       ? "products"
-      : $("admin-kind").value === "locales"
+      : activeKind === "locales"
         ? "stores"
         : "prices"
   ];
@@ -89,27 +141,90 @@ function renderAdmin() {
         `<div><strong>${count}</strong><span>${label}</span></div>`,
     )
     .join("");
-  const kind = $("admin-kind").value;
-  $("admin-list").innerHTML =
-    `<table><thead><tr><th>Registro</th><th>Detalle</th><th>Acciones</th></tr></thead><tbody>${adminRows()
-      .map(
-        (r) =>
-          `<tr><th scope="row">${escape(r.nombre || r.producto.nombre)}</th><td>${kind === "precios" ? `${escape(r.local.nombre)} · ${money(r.precio)} · ${date(r.fecha)}` : escape(r.direccion || "Corte por kilo")}</td><td><div class="admin-actions">${session.user.operador ? `<button class="button secondary small" data-edit="${r.id}">Editar</button>` : ""}${session.user.admin ? `<button class="text-button" data-delete="${r.id}">Dar de baja</button>` : ""}</div></td></tr>`,
-      )
-      .join(
-        "",
-      )}</tbody></table>${!adminRows().length ? '<p class="empty">Sin registros activos.</p>' : ""}`;
+  const section = sections[activeKind];
+  document.querySelectorAll("[data-section]").forEach((link) => {
+    if (link.dataset.section === activeKind)
+      link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  });
+  $("catalog-title").textContent = section.title;
+  $("section-step").textContent =
+    "CATÁLOGO / " + section.title.toLocaleUpperCase("es");
+  $("catalog-description").textContent = session.user.operador
+    ? section.description
+    : `Revisá los registros de ${section.title.toLocaleLowerCase("es")} y da de baja los que ya no correspondan.`;
+  $("catalog-guidance").textContent = session.user.operador
+    ? section.guidance
+    : "Las bajas son lógicas: los registros se conservan en la base. Las altas y modificaciones están a cargo del operador.";
+  $("admin-new").textContent = section.action + " +";
+  $("admin-new").disabled =
+    activeKind === "precios" &&
+    (!state.products.length || !state.stores.length);
+  if ($("admin-new").disabled && session.user.operador)
+    $("catalog-guidance").textContent =
+      "Para publicar un precio, primero agregá al menos un corte y un local desde sus apartados.";
+  $("catalog-search").placeholder = section.search;
+  $("store-filter-label").hidden = activeKind !== "precios";
+  const search = $("catalog-search").value.trim().toLocaleLowerCase("es");
+  const store = $("store-filter").value;
+  const rows = adminRows().filter((r) => {
+    const text =
+      activeKind === "precios"
+        ? `${r.producto.nombre} ${r.local.nombre}`
+        : `${r.nombre} ${r.direccion || ""}`;
+    return (
+      text.toLocaleLowerCase("es").includes(search) &&
+      (activeKind !== "precios" || !store || String(r.local.id) === store)
+    );
+  });
+  $("result-count").textContent =
+    `${rows.length} de ${adminRows().length} registros`;
+  $("clear-filters").hidden = !search && !store;
+  const headers =
+    activeKind === "precios"
+      ? ["Corte", "Local", "Precio / kg", "Fecha"]
+      : activeKind === "locales"
+        ? ["Local", "Dirección", "Coordenadas"]
+        : ["Corte", "Referencia"];
+  const actions = (r) =>
+    `<div class="admin-actions">${session.user.operador ? `<button class="button secondary small" data-edit="${r.id}" aria-label="Editar ${escape(r.nombre || r.producto.nombre)}">Editar</button>` : ""}${session.user.admin ? `<button class="text-button" data-delete="${r.id}" aria-label="Dar de baja ${escape(r.nombre || r.producto.nombre)}">Dar de baja</button>` : ""}</div>`;
+  const cells = (r) =>
+    activeKind === "precios"
+      ? `<th scope="row">${escape(r.producto.nombre)}</th><td>${escape(r.local.nombre)}</td><td class="price-cell">${money(r.precio)}</td><td>${date(r.fecha)}</td>`
+      : activeKind === "locales"
+        ? `<th scope="row">${escape(r.nombre)}</th><td>${escape(r.direccion)}</td><td class="muted">${escape(r.coordenada_x)}, ${escape(r.coordenada_y)}</td>`
+        : `<th scope="row">${escape(r.nombre)}</th><td class="muted">Corte #${r.id} · Precio por kilo</td>`;
+  $("admin-list").innerHTML = rows.length
+    ? `<table><caption class="sr-only">Registros de ${section.title}</caption><thead><tr>${headers.map((h) => `<th scope="col">${h}</th>`).join("")}<th scope="col">Acciones</th></tr></thead><tbody>${rows.map((r) => `<tr>${cells(r)}<td>${actions(r)}</td></tr>`).join("")}</tbody></table>`
+    : `<div class="empty"><strong>${adminRows().length ? "No encontramos coincidencias." : "Todavía no hay registros en este apartado."}</strong>${adminRows().length ? "Probá con otra búsqueda o limpiá los filtros." : session.user.operador ? "Usá el botón de arriba para cargar la primera información." : "Cuando el operador cargue información, aparecerá acá."}</div>`;
 }
+function changeSection() {
+  const kind = location.hash.slice(1);
+  activeKind = Object.hasOwn(sections, kind) ? kind : "precios";
+  $("catalog-search").value = "";
+  $("store-filter").value = "";
+  renderAdmin();
+}
+window.addEventListener("hashchange", changeSection);
+$("catalog-search").oninput = renderAdmin;
+$("store-filter").onchange = renderAdmin;
+$("clear-filters").onclick = () => {
+  $("catalog-search").value = "";
+  $("store-filter").value = "";
+  renderAdmin();
+  $("catalog-search").focus();
+};
 function field(name, label, type, value = "", attrs = "") {
   return `<label>${label}<input name="${name}" type="${type}" value="${escape(value)}" ${attrs} required></label>`;
 }
 function edit(id = null) {
   if (!session.user.operador) return;
-  const kind = $("admin-kind").value;
+  const kind = activeKind;
   const record = id === null ? {} : adminRows().find((r) => r.id === id);
   editing = { kind, id };
   $("edit-title").textContent =
-    id === null ? "Nuevo registro" : "Editar registro";
+    (id === null ? "Nuevo " : "Editar ") + sections[kind].singular;
+  $("edit-help").textContent = sections[kind].guidance;
   $("admin-error").textContent = "";
   let html;
   if (kind === "precios") {
@@ -168,14 +283,17 @@ function edit(id = null) {
   $("admin-fields").innerHTML = html;
   $("admin-dialog").showModal();
 }
-$("admin-kind").onchange = renderAdmin;
 $("admin-new").onclick = () => edit();
 $("admin-list").onclick = (event) => {
   const button = event.target.closest("button");
   if (!button) return;
   if (button.dataset.edit) edit(+button.dataset.edit);
   if (button.dataset.delete && session.user.admin) {
-    deleting = { kind: $("admin-kind").value, id: +button.dataset.delete };
+    deleting = { kind: activeKind, id: +button.dataset.delete };
+    const record = adminRows().find((r) => r.id === deleting.id);
+    $("delete-record").textContent =
+      record.nombre ||
+      `${record.producto.nombre} · ${record.local.nombre} · ${money(record.precio)}`;
     $("delete-error").textContent = "";
     $("delete-dialog").showModal();
   }
@@ -185,6 +303,7 @@ $("admin-form").onsubmit = async (event) => {
   if (!session.user.operador) return;
   const submit = event.target.querySelector("[type=submit]");
   submit.disabled = true;
+  submit.textContent = "Guardando…";
   const data = Object.fromEntries(new FormData(event.target));
   ["localId", "productoId", "precio", "latitud", "longitud"].forEach((key) => {
     if (key in data) data[key] = Number(data[key]);
@@ -203,6 +322,7 @@ $("admin-form").onsubmit = async (event) => {
     $("admin-error").textContent = error.message;
   } finally {
     submit.disabled = false;
+    submit.textContent = "Guardar registro";
   }
 };
 $("confirm-delete").onclick = async () => {

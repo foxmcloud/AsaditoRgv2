@@ -45,3 +45,13 @@ El frontend consulta /api/auth/me, que devuelve authenticated, email, admin y op
 - Toda escritura sigue necesitando CSRF.
 
 Probá ambas cuentas en sesiones separadas. Crear/editar como ADMIN y eliminar como OPERADOR debe devolver 403, aunque se fabrique la solicitud manualmente. Un usuario común no puede realizar ninguna de estas operaciones. Los dos roles de gestión siguen pudiendo utilizar el comparador, calculadora y PDF.
+
+## Apartados del panel
+
+La gestión ahora se organiza en tres apartados con navegación propia:
+
+- `/gestion.html#precios`: publicar valores por kilo, buscar por corte/comercio y filtrar por local. Para cargar un precio tienen que existir un corte y un local.
+- `/gestion.html#productos`: crear y editar el catálogo de cortes, con búsqueda por nombre.
+- `/gestion.html#locales`: cargar comercios, direcciones y coordenadas, con búsqueda por nombre o dirección.
+
+Cada apartado tiene columnas, explicaciones y formularios específicos. Las búsquedas solo filtran la vista: no modifican registros. Los filtros se pueden limpiar y el botón Actualizar vuelve a consultar el backend. Los estados vacíos distinguen entre falta de información y búsquedas sin resultados. La confirmación de baja identifica el registro elegido. Los permisos siguen siendo OPERADOR para altas/ediciones y ADMIN para bajas lógicas.

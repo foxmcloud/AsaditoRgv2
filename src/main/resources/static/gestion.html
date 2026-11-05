@@ -6,6 +6,7 @@
     <meta name="robots" content="noindex,nofollow" />
     <title>Gestión del catálogo · Asadito RG</title>
     <link rel="stylesheet" href="/assets/css/app.css" />
+    <link rel="stylesheet" href="/assets/css/gestion.css" />
     <script type="module" src="/assets/js/gestion.js"></script>
   </head>
   <body>
@@ -48,21 +49,67 @@
           class="management-summary"
           aria-label="Resumen del catálogo"
         ></div>
-        <div class="admin-toolbar">
-          <button id="refresh-panel" disabled class="button secondary">
-            ↻ Actualizar catálogo
-          </button>
-          <label for="admin-kind"
-            >Gestionar<select id="admin-kind">
-              <option value="precios">Precios</option>
-              <option value="productos">Cortes</option>
-              <option value="locales">Locales</option>
-            </select></label
-          ><button id="admin-new" class="button" hidden>
-            Nuevo registro +
-          </button>
+        <div class="control-layout">
+          <aside class="control-sidebar">
+            <span class="eyebrow">TU ESPACIO DE TRABAJO</span>
+            <nav id="catalog-nav" aria-label="Apartados del catálogo">
+              <a href="#precios" data-section="precios"
+                ><span class="section-icon">$</span
+                ><span
+                  >Precios<small>Publicaciones y actualizaciones</small></span
+                ></a
+              >
+              <a href="#productos" data-section="productos"
+                ><span class="section-icon">01</span
+                ><span
+                  >Cortes<small>Productos para el comparador</small></span
+                ></a
+              >
+              <a href="#locales" data-section="locales"
+                ><span class="section-icon">⌂</span
+                ><span>Locales<small>Comercios y ubicaciones</small></span></a
+              >
+            </nav>
+            <p class="sidebar-help">
+              Un catálogo al día hace más fácil elegir dónde comprar.
+            </p>
+          </aside>
+          <section class="catalog-workspace" aria-labelledby="catalog-title">
+            <div class="workspace-heading">
+              <div>
+                <span id="section-step" class="eyebrow"></span>
+                <h2 id="catalog-title" tabindex="-1"></h2>
+                <p id="catalog-description"></p>
+              </div>
+              <button id="admin-new" class="button" hidden>
+                Nuevo registro +
+              </button>
+            </div>
+            <div id="catalog-guidance" class="catalog-guidance"></div>
+            <div class="catalog-filters">
+              <label for="catalog-search"
+                >Buscar en este apartado<input
+                  id="catalog-search"
+                  type="search"
+                  placeholder="Buscar…"
+                  autocomplete="off" /></label
+              ><label id="store-filter-label" for="store-filter"
+                >Filtrar por local<select id="store-filter">
+                  <option value="">Todos los locales</option>
+                </select></label
+              ><button id="refresh-panel" disabled class="button secondary">
+                ↻ Actualizar
+              </button>
+            </div>
+            <div class="results-heading">
+              <span id="result-count" role="status" aria-live="polite"></span
+              ><button id="clear-filters" class="text-button" hidden>
+                Limpiar filtros
+              </button>
+            </div>
+            <div id="admin-list" class="table-wrap" aria-busy="false"></div>
+          </section>
         </div>
-        <div id="admin-list" class="table-wrap"></div>
       </section>
     </main>
     <footer>
@@ -111,11 +158,21 @@
       >
         ×
       </button>
+      <span class="eyebrow">GESTIÓN DEL CATÁLOGO</span>
       <h2 id="edit-title">Nuevo registro</h2>
+      <p id="edit-help" class="muted"></p>
       <form id="admin-form">
         <div id="admin-fields"></div>
         <p id="admin-error" class="form-error" role="alert"></p>
-        <button type="submit" class="button full">Guardar registro</button>
+        <div class="dialog-actions">
+          <button
+            type="button"
+            class="button secondary"
+            data-close="admin-dialog"
+          >
+            Cancelar</button
+          ><button type="submit" class="button">Guardar registro</button>
+        </div>
       </form>
     </dialog>
     <dialog id="delete-dialog" aria-labelledby="delete-title">
@@ -124,6 +181,7 @@
         Dejará de mostrarse en las consultas. El registro seguirá en la base de
         datos.
       </p>
+      <p id="delete-record" class="delete-record"></p>
       <p id="delete-error" class="form-error" role="alert"></p>
       <div class="dialog-actions">
         <button class="button secondary" data-close="delete-dialog">
