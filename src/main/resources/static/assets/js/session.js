@@ -65,6 +65,8 @@ export async function api(path, options = {}) {
         body.message ||
           `No se pudo completar la operación (${response.status})`,
         fields,
+        body.code ? `Código: ${body.code}` : "",
+        body.reference ? `Referencia: ${body.reference}` : "",
       ]
         .filter(Boolean)
         .join(". "),
