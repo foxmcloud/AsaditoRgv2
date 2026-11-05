@@ -21,6 +21,7 @@ const state = {
   pdf: null,
   revision: 0,
   busy: false,
+  mobileProductId: "",
 };
 function invalidate() {
   state.revision++;
@@ -32,6 +33,7 @@ function invalidate() {
 }
 async function load() {
   $("refresh").disabled = true;
+  $("mobile-cut").disabled = true;
   try {
     const [products, stores, prices, latest] = await Promise.all(
       ["productos", "locales", "precios", "precios/ultimos"].map((p) =>
@@ -52,11 +54,15 @@ async function load() {
     notice(error.message, true);
     $("comparison").innerHTML =
       '<p class="empty">No pudimos cargar el catálogo. Intentá actualizar.</p>';
+    $("mobile-results").innerHTML =
+      '<div class="mobile-empty"><strong>No pudimos cargar los precios.</strong><p>Tocá Actualizar para volver a intentarlo.</p></div>';
+    $("mobile-result-count").textContent = "";
   } finally {
     $("refresh").disabled = false;
   }
 }
 function renderComparison() {
+  renderMobileComparison();
   const search = $("search").value.trim().toLocaleLowerCase("es");
   const products = state.products.filter((p) =>
     p.nombre.toLocaleLowerCase("es").includes(search),
@@ -92,6 +98,57 @@ function renderComparison() {
       })
       .join("")}</tbody></table>`;
 }
+function renderMobileComparison() {
+  const select = $("mobile-cut");
+  if (!state.products.some((p) => String(p.id) === state.mobileProductId))
+    state.mobileProductId = "";
+  select.innerHTML =
+    `<option value="">${state.products.length ? "Elegí un corte…" : "No hay cortes disponibles"}</option>` +
+    state.products
+      .map((p) => `<option value="${p.id}">${escape(p.nombre)}</option>`)
+      .join("");
+  select.value = state.mobileProductId;
+  select.disabled = !state.products.length;
+  const product = state.products.find(
+    (p) => String(p.id) === state.mobileProductId,
+  );
+  $("mobile-cut-title").textContent =
+    product?.nombre || "Elegí un corte para empezar";
+  $("mobile-result-count").textContent = "";
+  if (!product) {
+    $("mobile-results").innerHTML =
+      `<div class="mobile-empty"><span aria-hidden="true">↕</span><strong>${state.products.length ? "Encontrá dónde conviene" : "Todavía no hay cortes cargados"}</strong><p>${state.products.length ? "Seleccioná un corte para comparar los precios publicados por cada local." : "Cuando se publique el catálogo, vas a poder comparar acá."}</p></div>`;
+    return;
+  }
+  const offers = state.latest
+    .flatMap((store) => {
+      const item = store.productos.find((p) => p.id === product.id);
+      return item &&
+        Number.isFinite(Number(item.precio)) &&
+        Number(item.precio) > 0
+        ? [{ store, item, amount: Number(item.precio) }]
+        : [];
+    })
+    .sort(
+      (a, b) =>
+        a.amount - b.amount ||
+        a.store.localNombre.localeCompare(b.store.localNombre, "es") ||
+        a.store.localId - b.store.localId,
+    );
+  $("mobile-result-count").textContent =
+    `${offers.length} ${offers.length === 1 ? "local con precio" : "locales con precio"} · Menor a mayor`;
+  if (!offers.length) {
+    $("mobile-results").innerHTML =
+      '<div class="mobile-empty"><strong>No hay precios publicados para este corte.</strong><p>Probá con otro corte o actualizá más tarde.</p></div>';
+    return;
+  }
+  $("mobile-results").innerHTML =
+    `<ol class="offer-list">${offers.map(({ store, item, amount }, index) => `<li class="offer-card ${amount === offers[0].amount ? "lowest-offer" : ""}"><div class="offer-top"><span class="offer-rank" aria-label="Posición ${index + 1}">${String(index + 1).padStart(2, "0")}</span>${amount === offers[0].amount ? '<span class="offer-badge">Menor precio publicado</span>' : ""}</div><h4>${escape(store.localNombre)}</h4><p class="offer-address">${escape(store.direccion)}</p><div class="offer-bottom"><div><strong class="offer-price">${money(amount)}</strong><span class="offer-unit">ARS / kg</span></div><span class="offer-date">Precio del<br><time datetime="${escape(item.fecha)}">${date(item.fecha)}</time></span></div></li>`).join("")}</ol>`;
+}
+$("mobile-cut").onchange = (event) => {
+  state.mobileProductId = event.target.value;
+  renderMobileComparison();
+};
 function renderBasket() {
   $("basket").innerHTML = state.products.length
     ? state.products

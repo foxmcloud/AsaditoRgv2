@@ -956,3 +956,167 @@ dialog form .button {
     width: 165px;
   }
 }
+
+.comparison-mobile {
+  display: none;
+}
+@media (max-width: 760px) {
+  .comparison-desktop {
+    display: none;
+  }
+  .comparison-mobile {
+    display: block;
+  }
+  .cut-picker {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 22px 19px;
+  }
+  .cut-picker .eyebrow {
+    font-size: 9px;
+    margin-bottom: 12px;
+  }
+  .cut-picker label {
+    font-size: 16px;
+  }
+  .cut-picker select {
+    margin-top: 12px;
+    padding: 14px 12px;
+    border-color: #9da994;
+    font-size: 15px;
+    min-height: 49px;
+  }
+  .cut-picker p {
+    margin: 12px 0 0;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .mobile-results-heading {
+    margin: 24px 0 15px;
+  }
+  .mobile-results-heading h3 {
+    font-family: Georgia, serif;
+    font-size: 25px;
+    font-weight: 400;
+    margin-bottom: 6px;
+  }
+  #mobile-result-count {
+    display: block;
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .offer-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 14px;
+  }
+  .offer-card {
+    padding: 19px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--paper);
+  }
+  .offer-card.lowest-offer {
+    border: 1px solid #8ca68b;
+    box-shadow: 0 4px 16px #335c480a;
+  }
+  .offer-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+  .offer-rank {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    background: #f0ede3;
+    color: var(--muted);
+    border-radius: 8px;
+    font-size: 12px;
+  }
+  .lowest-offer .offer-rank {
+    background: var(--light-green);
+    color: var(--green);
+  }
+  .offer-badge {
+    color: var(--green);
+    background: var(--light-green);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 5px 9px;
+    border-radius: 20px;
+  }
+  .offer-card h4 {
+    font-size: 17px;
+    margin: 0 0 6px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+  .offer-address {
+    margin: 0 0 18px;
+    color: var(--muted);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+  .offer-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 12px;
+    border-top: 1px solid var(--line);
+    padding-top: 15px;
+  }
+  .offer-price {
+    font-size: clamp(19px, 6vw, 25px);
+    letter-spacing: -0.6px;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+  .lowest-offer .offer-price {
+    color: var(--green);
+  }
+  .offer-unit {
+    display: block;
+    color: var(--muted);
+    font-size: 10px;
+    margin-top: 4px;
+  }
+  .offer-date {
+    flex-shrink: 0;
+    text-align: right;
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.7;
+  }
+  .offer-date time {
+    color: var(--ink);
+    font-size: 11px;
+  }
+  .mobile-empty {
+    text-align: center;
+    padding: 30px 19px;
+    border: 1px dashed var(--line);
+    border-radius: 15px;
+  }
+  .mobile-empty > span {
+    display: block;
+    color: var(--orange);
+    font-size: 30px;
+    margin-bottom: 8px;
+  }
+  .mobile-empty strong {
+    display: block;
+    font-size: 15px;
+  }
+  .mobile-empty p {
+    color: var(--muted);
+    font-size: 12px;
+    margin: 8px 0 0;
+  }
+}

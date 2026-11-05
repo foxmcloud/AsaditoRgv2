@@ -53,3 +53,7 @@ Los roles se validan en Spring Security por método y ruta, además de ocultar l
 Para IntelliJ, revisar [la configuración de cuentas y paneles](docs/ROLES_Y_PANELES.md).
 
 Podés revisar [un ejemplo del nuevo presupuesto PDF](docs/EJEMPLO_PRESUPUESTO.pdf), con datos explícitamente ficticios y sin cargarlos en el catálogo.
+
+## Comparador en celulares
+
+En pantallas de hasta 760 px, el comparador utiliza un selector de corte y tarjetas de comercios ordenadas numéricamente de menor a mayor precio por kilo. Muestra dirección, fecha y el menor precio publicado (incluidos empates). Los comercios sin un precio válido para ese corte no participan. Un precio publicado no garantiza stock: debe confirmarse con el local. Actualizar conserva el corte seleccionado y reordena las tarjetas con los nuevos valores; los cortes sin precios muestran un estado vacío. En escritorio se mantiene la tabla comparativa.

@@ -86,17 +86,58 @@
             ↻ Actualizar
           </button>
         </div>
-        <div class="filters">
-          <label for="search"
-            >Buscar corte<input
-              id="search"
-              type="search"
-              placeholder="Ej. vacío, chorizo…" /></label
-          ><span class="legend"><i></i> Menor precio publicado por corte</span
-          ><span id="data-count" class="muted"></span>
+        <div class="comparison-desktop">
+          <div class="filters">
+            <label for="search"
+              >Buscar corte<input
+                id="search"
+                type="search"
+                placeholder="Ej. vacío, chorizo…" /></label
+            ><span class="legend"><i></i> Menor precio publicado por corte</span
+            ><span id="data-count" class="muted"></span>
+          </div>
+          <div id="comparison" class="table-wrap" aria-live="polite">
+            <p class="empty">Cargando precios…</p>
+          </div>
         </div>
-        <div id="comparison" class="table-wrap" aria-live="polite">
-          <p class="empty">Cargando precios…</p>
+        <div class="comparison-mobile">
+          <div class="cut-picker">
+            <span class="eyebrow">COMPARÁ EN UN TOQUE</span
+            ><label for="mobile-cut">¿Qué corte estás buscando?</label
+            ><select
+              id="mobile-cut"
+              disabled
+              aria-describedby="mobile-sort-hint"
+            >
+              <option value="">Cargando cortes…</option>
+            </select>
+            <p id="mobile-sort-hint">
+              Elegí un corte y mirá los locales de menor a mayor precio por
+              kilo.
+            </p>
+          </div>
+          <div class="mobile-results-heading">
+            <h3 id="mobile-cut-title">Elegí un corte para empezar</h3>
+            <span
+              id="mobile-result-count"
+              role="status"
+              aria-live="polite"
+            ></span>
+          </div>
+          <div
+            id="mobile-results"
+            role="region"
+            aria-labelledby="mobile-cut-title"
+          >
+            <div class="mobile-empty">
+              <span aria-hidden="true">↕</span
+              ><strong>Encontrá dónde conviene</strong>
+              <p>
+                Seleccioná un corte para comparar los precios publicados por
+                cada local.
+              </p>
+            </div>
+          </div>
         </div>
         <p class="fine-print">
           Los precios son informativos y pueden cambiar. No incluyen envío. “Sin
