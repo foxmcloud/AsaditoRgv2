@@ -83,7 +83,7 @@ function renderSession() {
     link.hidden = !(session.user.admin || session.user.operador);
     link.textContent = session.user.operador
       ? "Panel de operador"
-      : "Administrar bajas";
+      : "Administrar catálogo";
   }
   onChange();
 }

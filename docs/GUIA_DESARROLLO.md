@@ -16,7 +16,7 @@ No se publicaron precios de ejemplo como si fueran reales. Los 8 cortes y 13 loc
 | --- | --- | --- |
 | 1. Sesiones y autenticación | Spring Security, login por formulario, cookie JSESSIONID, logout, endpoint de sesión | Explicar por qué se usa sesión y cómo se renueva el ID al autenticar |
 | 2. Contraseñas seguras | BCrypt y columna passwordHash; nunca se devuelve el hash en la API | Diferenciar hash y cifrado; no agregar contraseñas de prueba al código |
-| 3. ABM principal | Productos, locales y precios: altas/edición desde OPERADOR y bajas desde ADMIN | Demostrar las tres operaciones en cada entidad |
+| 3. ABM principal | Cortes/locales: ABM por ADMIN; precios: carga por OPERADOR | Demostrar ABM de cortes/locales y carga de precios |
 | 4. Bajas lógicas | Campo activo; las bajas no llaman delete del repositorio | Mostrar que el registro permanece y desaparece de consultas públicas |
 | 5. Organización | config, controllers, dtos, services, modelos, repositorios; frontend separado en assets | Seguir el recorrido de una solicitud desde la pantalla hasta la BD |
 | 6. Entidades y POO | Usuario; Locales y Productos relacionados por Precios | Justificar cardinalidades, identidad y responsabilidades |
@@ -36,8 +36,8 @@ Seguí el README. Las variables importantes son:
 
 - SPRING_DATASOURCE_URL: JDBC de la base PostgreSQL.
 - SPRING_DATASOURCE_USERNAME y SPRING_DATASOURCE_PASSWORD: credenciales locales, fuera de Git.
-- ASADITO_ADMIN_EMAIL y ASADITO_ADMIN_PASSWORD: creación inicial opcional del administrador que solo da de baja.
-- ASADITO_OPERADOR_EMAIL y ASADITO_OPERADOR_PASSWORD: creación inicial opcional del operador que agrega y modifica. Debe usar otro email. No hay cuentas de gestión públicas por defecto.
+- ASADITO_ADMIN_EMAIL y ASADITO_ADMIN_PASSWORD: creación inicial opcional del administrador de cortes y locales.
+- ASADITO_OPERADOR_EMAIL y ASADITO_OPERADOR_PASSWORD: creación inicial opcional del operador que solo carga precios. Debe usar otro email. No hay cuentas de gestión públicas por defecto.
 - PORT: puerto HTTP, por defecto 8080.
 - SESSION_COOKIE_SECURE: false para HTTP local, true cuando el despliegue usa HTTPS.
 
@@ -50,7 +50,7 @@ La migración es idempotente. No borra tablas ni elimina datos. ddl-auto=update 
 ### Datos iniciales
 
 1. Iniciá la aplicación con las variables de las cuentas ADMIN y OPERADOR, cada una con su propio email.
-2. Ingresá con la cuenta OPERADOR para crear y editar información.
+2. Ingresá como ADMIN para crear cortes/locales y como OPERADOR para cargar precios.
 3. Abrí Administrar y cargá el precio por kilo de un corte en dos locales.
 4. La fecha no puede ser futura. Cuando hay varios precios de la misma fecha para un corte/local, se usa el registro con mayor ID.
 5. Retirá las variables de bootstrap cuando las cuentas estén creadas. Para dar de baja ingresá como ADMIN.
@@ -59,7 +59,7 @@ El catálogo arranca sin precios. Ver un estado vacío es correcto. No implica q
 
 ## 4. Cómo funciona la seguridad
 
-SecurityConfig arma la cadena de filtros de Spring Security. Las consultas del catálogo y el cálculo son públicos. Las altas (POST) y modificaciones (PUT) del catálogo requieren ROLE_OPERADOR. Las bajas (DELETE) requieren ROLE_ADMIN. ADMIN no hereda los permisos del operador y el operador no puede eliminar. El PDF requiere un usuario autenticado. La interfaz oculta el panel cuando corresponde, pero la protección real está en el servidor.
+SecurityConfig arma la cadena de filtros de Spring Security. Las consultas del catálogo y el cálculo son públicos. El ABM de cortes/locales requiere ROLE_ADMIN. Solo ROLE_OPERADOR puede publicar precios nuevos (POST). Nadie puede modificar ni eliminar precios publicados por la API; se conserva el historial. El PDF requiere un usuario autenticado. La interfaz oculta el panel cuando corresponde, pero la protección real está en el servidor.
 
 El registro público recibe email y password. El email se normaliza y tiene unicidad en la base. El servidor asigna USER; rechaza campos no reconocidos como rol. BCrypt aplica sal y costo de trabajo. La contraseña se valida antes de codificarla: mínimo 10 caracteres y máximo 72 bytes UTF-8, límite relevante de BCrypt. Un carácter acentuado puede ocupar más de un byte.
 
@@ -75,7 +75,7 @@ Antes de exponer el sitio a Internet: HTTPS, cookie Secure, credenciales de BD r
 
 CatalogController recibe las solicitudes y valida los DTO. CatalogService contiene las operaciones, busca relaciones activas y usa repositorios JPA. Los DTO de entrada limitan lo que el cliente puede mandar; las respuestas de catálogo son proyecciones simples y no serializan entidades con ciclos.
 
-Cada precio pertenece a un local y un producto. Es un registro con fecha, importe y estado. Dar de baja un local o producto oculta también sus precios en las consultas públicas sin borrar el historial. Dar de baja el precio más reciente permite que vuelva a utilizarse el registro activo anterior: es una regla explícita de esta versión, importante para explicar en el examen. Si el negocio exige que una baja signifique “sin precio vigente”, necesitarás modelar vigencia o cancelación en lugar de volver al anterior.
+Cada precio pertenece a un local y un producto. Es un registro con fecha, importe y estado. Dar de baja un local o producto oculta también sus precios en las consultas públicas sin borrar el historial. Los precios no se editan ni se dan de baja mediante la API en esta versión: un valor nuevo se publica con otra fila. Si se desactiva un precio mediante una operación de mantenimiento controlada, se selecciona el anterior activo. Si el negocio exige que una baja signifique “sin precio vigente”, necesitarás modelar vigencia o cancelación en lugar de volver al anterior.
 
 Los IDs identifican los locales. Dos comercios con el mismo nombre no se mezclan. La selección del último precio ordena fecha e ID para resolver empates de forma determinista.
 
@@ -126,9 +126,10 @@ Esta integración automática queda pendiente; no es una función simulada ni se
 | POST /api/auth/logout | Sesión + CSRF | Invalidar sesión |
 | GET /api/productos, /api/locales, /api/precios | Público | Catálogo activo |
 | GET /api/precios/ultimos | Público | Último precio activo por corte/local |
-| POST /api/admin/productos, /locales, /precios | OPERADOR + CSRF | Alta |
-| PUT /api/admin/productos/{id}, /locales/{id}, /precios/{id} | OPERADOR + CSRF | Edición |
-| DELETE /api/admin/{tipo}/{id} | ADMIN + CSRF | Baja lógica |
+| POST /api/admin/productos, /locales | ADMIN + CSRF | Alta |
+| POST /api/admin/precios | OPERADOR + CSRF | Publicar precio |
+| PUT /api/admin/productos/{id}, /locales/{id} | ADMIN + CSRF | Edición |
+| DELETE /api/admin/productos/{id}, /locales/{id} | ADMIN + CSRF | Baja lógica |
 | POST /api/presupuestos/calcular | Público + CSRF | Validar y calcular |
 | POST /api/presupuestos/pdf | Autenticado + CSRF | Descargar PDF recalculado |
 
@@ -154,7 +155,7 @@ Ensayo manual recomendado:
 
 1. Abrir en una ventana privada: comparar sin cuenta, intentar descargar PDF y observar el pedido de ingreso.
 2. Registrar USER; cerrar sesión; probar una contraseña incorrecta; volver a ingresar; confirmar que no aparece administración.
-3. Con OPERADOR, crear y editar productos, locales y precios. Verificar que no vea botones de baja y que DELETE directo sea rechazado. Cambiar a ADMIN, verificar que no pueda crear/editar y dar de baja. Revisar la fila conservada en la base.
+3. Con ADMIN, crear, editar y dar de baja cortes y locales. Con OPERADOR, publicar un precio. Probar los permisos inversos (deben devolver 403), así como la edición/eliminación de precios (siempre 403).
 4. Publicar un corte en dos locales: 10000 y 12000 por kilo. Con 1,5 kg, comprobar 15000 y 18000. El primero debe encabezar el ranking.
 5. Agregar un segundo corte sin precio en uno de los locales: ese comercio debe aparecer incompleto, sin total competitivo.
 6. Intentar datos vacíos, precio negativo, fecha futura, coordenada 91 de latitud, cantidad negativa y cantidades que no sean múltiplos de 0,5 (por ejemplo 0,25 o 1,2 kg). Verificar rechazo en Java aunque se omita el HTML.
@@ -170,7 +171,7 @@ La prueba funcional de navegador realizada en el entorno usa Chromium y una base
 - Seguí el clic en “Calcular”: evento JS, fetch, CSRF, controlador, DTO, servicio, repositorio y respuesta. Explicalo sin leer la guía.
 - Cambiá el máximo permitido a 500 kg. ¿Qué validación backend y qué atributo HTML/validación JS deben cambiar? Agregá una prueba de 501.
 - Agregá teléfono opcional al local. Modificá entidad, migración, DTO de entrada, validación, proyección y formulario. No confundas teléfono con credencial.
-- Diseñá una posible restauración de bajas: acordá primero quién debería autorizarla, ya que actualmente ADMIN solo elimina y OPERADOR crea/edita. No amplíes permisos sin definir la regla y sus pruebas.
+- Diseñá una posible restauración de bajas: acordá primero quién debería autorizarla, ya que actualmente ADMIN gestiona cortes/locales y OPERADOR solo carga precios. No amplíes permisos sin definir la regla y sus pruebas.
 - Probá dos locales con el mismo nombre. Explicá por qué los IDs mantienen presupuestos independientes.
 - Simulá la baja del último precio y explicá qué registro anterior se selecciona.
 - Justificá por qué una lista incompleta no debe ganar por total menor y por qué el backend recalcula el PDF.
@@ -192,8 +193,4 @@ Los binarios y recursos de build/ ya estaban versionados. Los cambios nuevos no 
 
 ## 12. Paneles OPERADOR y ADMIN
 
-La gestión se realiza en una página independiente /gestion.html. La página pública / no contiene formularios administrativos, ni siquiera cuando hay sesión de gestión. Los módulos app.js y gestion.js separan sus funciones y comparten session.js para autenticación y CSRF. El operador dispone de un resumen del catálogo, selector de precios/cortes/locales, alta y edición. No tiene botones para dar de baja. El administrador dispone del mismo catálogo para identificar registros y confirmar bajas lógicas; no tiene botones de nuevo ni editar. Un USER no ve ninguno de los paneles.
-
-La API conserva las rutas /api/admin para compatibilidad; ese nombre no concede permisos: Spring Security decide según POST/PUT para OPERADOR y DELETE para ADMIN. El resto de métodos de ese espacio se deniega. No se permite elegir rol en el registro público.
-
-Las cuentas existentes conservan su rol; ADMIN deja de crear/editar según la nueva regla de negocio. OPERADOR es un nuevo valor de la columna rol, por lo que no requiere migración de esquema. Para crearlo en IntelliJ consultá docs/ROLES_Y_PANELES.md. Nunca uses un mismo email para ambas cuentas ni intentes cambiar una contraseña existente solo modificando variables de bootstrap.
+La gestión se realiza en /gestion.html. ADMIN agrega, modifica y da de baja cortes/locales en apartados propios. OPERADOR solo carga precios nuevos sobre cortes/locales ya existentes; no modifica ni elimina registros. ADMIN puede consultar precios, sin publicarlos. USER no accede a la gestión. Las mismas reglas se validan en el backend por método y ruta, sin modificar roles ni contraseñas existentes. Ver docs/ROLES_Y_PANELES.md.

@@ -104,7 +104,7 @@ class FlujoIntegradoTests {
     @Test @WithMockUser(roles = "USER") void userCannotAdminister() throws Exception {
         mvc.perform(delete("/api/admin/productos/" + product.getId()).with(csrf())).andExpect(status().isForbidden());
     }
-    @Test @WithMockUser(roles = "OPERADOR") void crudAndLogicalDeletion() throws Exception {
+    @Test @WithMockUser(roles = "ADMIN") void crudAndLogicalDeletion() throws Exception {
         mvc.perform(post("/api/admin/productos").with(csrf()).contentType("application/json").content("{\"nombre\":\"Entraña\"}"))
             .andExpect(status().isCreated()).andExpect(jsonPath("$.id").isNumber());
         mvc.perform(put("/api/admin/productos/" + product.getId()).with(csrf()).contentType("application/json").content("{\"nombre\":\"Vacío actualizado\"}"))
@@ -115,9 +115,9 @@ class FlujoIntegradoTests {
         mvc.perform(post("/api/presupuestos/calcular").with(csrf()).contentType("application/json").content(basket())).andExpect(status().isNotFound());
     }
     @Test @WithMockUser(roles = "OPERADOR") void validatesJavaFieldsAndForeignKeys() throws Exception {
-        mvc.perform(post("/api/admin/productos").with(csrf()).contentType("application/json").content("{\"nombre\":\" \"}"))
+        mvc.perform(post("/api/admin/productos").with(user("admin").roles("ADMIN")).with(csrf()).contentType("application/json").content("{\"nombre\":\" \"}"))
             .andExpect(status().isBadRequest()).andExpect(jsonPath("$.fields.nombre").exists());
-        mvc.perform(post("/api/admin/locales").with(csrf()).contentType("application/json")
+        mvc.perform(post("/api/admin/locales").with(user("admin").roles("ADMIN")).with(csrf()).contentType("application/json")
             .content("{\"nombre\":\"Local\",\"direccion\":\"Calle 1\",\"latitud\":91,\"longitud\":0}"))
             .andExpect(status().isBadRequest());
         String badPrice = "{\"localId\":" + store.getId() + ",\"productoId\":" + product.getId() + ",\"precio\":-1,\"fecha\":\"" + LocalDate.now() + "\"}";
@@ -125,20 +125,20 @@ class FlujoIntegradoTests {
         mvc.perform(post("/api/admin/precios").with(csrf()).contentType("application/json").content(badPrice.replace("\"precio\":-1", "\"precio\":12.50").replace("\"localId\":" + store.getId(), "\"localId\":999999")))
             .andExpect(status().isNotFound());
     }
-    @Test @WithMockUser(roles = "OPERADOR") void editsStoresAndPricesAndPreservesLogicalDeletions() throws Exception {
+    @Test @WithMockUser(roles = "ADMIN") void adminEditsStoresAndOperatorPublishesPrices() throws Exception {
         mvc.perform(put("/api/admin/locales/" + store.getId()).with(csrf()).contentType("application/json")
             .content("{\"nombre\":\"Local editado\",\"direccion\":\"Calle 456\",\"latitud\":-53.7,\"longitud\":-67.7}"))
             .andExpect(status().isOk()).andExpect(jsonPath("$.direccion").value("Calle 456"));
-        String priceBody = "{\"localId\":" + store.getId() + ",\"productoId\":" + product.getId() + ",\"precio\":2500.25,\"fecha\":\"" + LocalDate.now() + "\"}";
-        mvc.perform(put("/api/admin/precios/" + price.getId()).with(csrf()).contentType("application/json").content(priceBody))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.precio").value(2500.25));
-        mvc.perform(post("/api/admin/precios").with(csrf()).contentType("application/json")
-            .content(priceBody.replace(LocalDate.now().toString(), LocalDate.now().plusDays(1).toString())))
+        String body = "{\"localId\":" + store.getId() + ",\"productoId\":" + product.getId() + ",\"precio\":2500.25,\"fecha\":\"" + LocalDate.now() + "\"}";
+        mvc.perform(post("/api/admin/precios").with(user("operador").roles("OPERADOR")).with(csrf()).contentType("application/json").content(body))
+            .andExpect(status().isCreated()).andExpect(jsonPath("$.precio").value(2500.25));
+        mvc.perform(post("/api/admin/precios").with(user("operador").roles("OPERADOR")).with(csrf()).contentType("application/json")
+            .content(body.replace(LocalDate.now().toString(), LocalDate.now().plusDays(1).toString())))
             .andExpect(status().isBadRequest());
-        mvc.perform(delete("/api/admin/precios/" + price.getId()).with(user("admin").roles("ADMIN")).with(csrf())).andExpect(status().isNoContent());
-        assertTrue(prices.existsById(price.getId())); assertFalse(prices.findById(price.getId()).orElseThrow().isActivo());
         mvc.perform(delete("/api/admin/locales/" + store.getId()).with(user("admin").roles("ADMIN")).with(csrf())).andExpect(status().isNoContent());
-        assertTrue(stores.existsById(store.getId())); assertFalse(stores.findById(store.getId()).orElseThrow().isActivo());
+        assertFalse(stores.findById(store.getId()).orElseThrow().isActivo());
+        assertTrue(prices.existsById(price.getId()));
+        mvc.perform(get("/api/precios/ultimos")).andExpect(content().json("[]"));
     }
     @ParameterizedTest @ValueSource(strings = {"USER", "OPERADOR", "ADMIN"})
     void roleMatrixAppliesToEveryCatalogEntity(String role) throws Exception {
@@ -152,19 +152,19 @@ class FlujoIntegradoTests {
         for (int i = 0; i < kinds.length; i++) {
             mvc.perform(post("/api/admin/" + kinds[i]).with(user("staff").roles(role)).with(csrf())
                 .contentType("application/json").content(bodies[i]))
-                .andExpect(status().is(role.equals("OPERADOR") ? 201 : 403));
+                .andExpect(status().is((i == 2 ? role.equals("OPERADOR") : role.equals("ADMIN")) ? 201 : 403));
             mvc.perform(put("/api/admin/" + kinds[i] + "/" + ids[i]).with(user("staff").roles(role)).with(csrf())
                 .contentType("application/json").content(bodies[i]))
-                .andExpect(status().is(role.equals("OPERADOR") ? 200 : 403));
+                .andExpect(status().is(i < 2 && role.equals("ADMIN") ? 200 : 403));
         }
         // Check deletions last so a parent deactivation does not affect the editing checks.
         for (int i = 0; i < kinds.length; i++) {
             mvc.perform(delete("/api/admin/" + kinds[i] + "/" + ids[i]).with(user("staff").roles(role)).with(csrf()))
-                .andExpect(status().is(role.equals("ADMIN") ? 204 : 403));
+                .andExpect(status().is(i < 2 && role.equals("ADMIN") ? 204 : 403));
         }
         assertEquals(!role.equals("ADMIN"), products.findById(product.getId()).orElseThrow().isActivo());
         assertEquals(!role.equals("ADMIN"), stores.findById(store.getId()).orElseThrow().isActivo());
-        assertEquals(!role.equals("ADMIN"), prices.findById(price.getId()).orElseThrow().isActivo());
+        assertTrue(prices.findById(price.getId()).orElseThrow().isActivo());
         mvc.perform(get("/api/auth/me").with(user("staff").roles(role)))
             .andExpect(jsonPath("$.admin").value(role.equals("ADMIN")))
             .andExpect(jsonPath("$.operador").value(role.equals("OPERADOR")));

@@ -36,7 +36,7 @@ Las pruebas usan H2 aislada en modo PostgreSQL y no modifican la base de desarro
 
 Leé [la guía de desarrollo y preparación del examen](docs/GUIA_DESARROLLO.md). Incluye correspondencia con los criterios del PDF de la materia, explicación del código, pruebas manuales, pendientes y una ruta para implementar WhatsApp Business más adelante. También está disponible en [PDF](docs/GUIA_DESARROLLO.pdf).
 
-Comparar y calcular es público. Descargar el PDF requiere sesión. Agregar y modificar el catálogo requiere OPERADOR. Dar de baja requiere ADMIN; el administrador no puede crear ni editar. WhatsApp recibe el resumen de texto mediante `wa.me`; el PDF se adjunta manualmente o se comparte desde el menú del dispositivo si soporta Web Share de archivos. La aplicación no manda mensajes automáticamente.
+Comparar y calcular es público. Descargar el PDF requiere sesión. ADMIN agrega, modifica y da de baja cortes y locales. OPERADOR solo publica precios nuevos; no edita ni elimina registros. Los precios publicados se conservan como historial. WhatsApp recibe el resumen de texto mediante `wa.me`; el PDF se adjunta manualmente o se comparte desde el menú del dispositivo si soporta Web Share de archivos. La aplicación no manda mensajes automáticamente.
 
 ## Paneles por rol
 
@@ -45,10 +45,10 @@ La página pública `/` contiene solo comparador, calculadora y reportes. La ges
 | Rol | Panel | Acciones sobre cortes, locales y precios |
 | --- | --- | --- |
 | USER | Sin gestión | Comparar, calcular y descargar PDF con sesión |
-| OPERADOR | Panel de operador | Agregar y modificar; no puede eliminar |
-| ADMIN | Administrar bajas | Dar de baja lógicamente; no puede agregar ni modificar |
+| OPERADOR | Panel de operador | Solo cargar precios nuevos |
+| ADMIN | Administrar catálogo | Agregar, modificar y dar de baja cortes/locales; consultar precios |
 
-Los roles se validan en Spring Security por método y ruta, además de ocultar los botones que no corresponden. Las cuentas ADMIN existentes conservan su rol y ahora tienen exclusivamente permisos de baja sobre el catálogo. No hay que cambiar el esquema de la base.
+Los roles se validan en Spring Security por método y ruta, además de ocultar los botones que no corresponden. Las cuentas existentes conservan su rol; ADMIN gestiona cortes/locales y OPERADOR publica precios. No hay que cambiar el esquema de la base.
 
 Para IntelliJ, revisar [la configuración de cuentas y paneles](docs/ROLES_Y_PANELES.md).
 

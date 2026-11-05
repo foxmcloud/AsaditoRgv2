@@ -1,15 +1,14 @@
 # Operador y administrador
 
-| Operación sobre cortes, locales y precios | USER | OPERADOR | ADMIN |
+| Operación | USER | OPERADOR | ADMIN |
 | --- | --- | --- | --- |
 | Consultar y comparar | Sí | Sí | Sí |
-| Crear | No | Sí | No |
-| Modificar | No | Sí | No |
-| Dar de baja lógicamente | No | No | Sí |
+| Agregar/modificar cortes y locales | No | No | Sí |
+| Dar de baja cortes y locales | No | No | Sí |
+| Cargar precios nuevos | No | Sí | No |
+| Editar/eliminar precios publicados | No | No | No |
 
-La eliminación conserva los registros en la base. No se concede al administrador acceso a las altas o modificaciones. Las cuentas existentes ADMIN conservan su rol, pero pasan a tener únicamente permiso de baja sobre el catálogo.
-
-La gestión tiene una página independiente: `/gestion.html`. No hay formularios de alta/edición/baja en la página pública, incluso cuando navega un operador o administrador. El enlace de gestión aparece al iniciar sesión con esos roles. También se puede abrir la dirección directamente para iniciar sesión; un USER recibe un aviso sin acceso a los controles.
+La gestión está en /gestion.html, separada del comparador público. ADMIN gestiona cortes y locales con bajas lógicas. OPERADOR solo ve el apartado de carga de precios; una nueva publicación conserva los valores anteriores. El administrador puede consultar ese historial. No se cambian roles ni contraseñas existentes y no hace falta migrar el esquema.
 
 ## Crear una cuenta de operador en IntelliJ
 
@@ -24,10 +23,10 @@ La gestión tiene una página independiente: `/gestion.html`. No hay formularios
 Usá valores sin comillas. No pegues los textos explicativos de esta tabla como valores. No guardes contraseñas en configuraciones compartidas o versionadas. El email debe ser distinto del ADMIN y no estar registrado como USER.
 
 3. Guardá con Apply, detené la ejecución anterior y reiniciá.
-4. Abrí `/gestion.html` en la dirección de tu aplicación e ingresá con esa cuenta. La página pública `/` queda dedicada al comparador, calculadora y reportes. Aparecerá “Panel de operador”, con un resumen, selector de entidad, botón Nuevo registro y botones Editar.
+4. Abrí `/gestion.html` en la dirección de tu aplicación e ingresá con esa cuenta. La página pública `/` queda dedicada al comparador, calculadora y reportes. Aparecerá “Panel de operador”, con el apartado Precios y el botón Publicar precio.
 5. Retirá ambas variables luego de la creación y reiniciá; la cuenta queda persistida con BCrypt.
 
-Para una nueva cuenta ADMIN el procedimiento es el mismo con ASADITO_ADMIN_EMAIL y ASADITO_ADMIN_PASSWORD. Al ingresar como ADMIN aparece “Administrar bajas”, con acciones Dar de baja y confirmación. No tiene Nuevo registro ni Editar.
+Para una nueva cuenta ADMIN el procedimiento es el mismo con ASADITO_ADMIN_EMAIL y ASADITO_ADMIN_PASSWORD. Al ingresar como ADMIN aparece “Administrar catálogo”, con apartados Cortes y Locales para agregar, editar y dar de baja; Precios es de consulta.
 
 ## Si la cuenta ya existe
 
@@ -37,21 +36,19 @@ Para cambiar una contraseña existente hace falta un procedimiento de recuperaci
 
 ## Seguridad y prueba manual
 
-El frontend consulta /api/auth/me, que devuelve authenticated, email, admin y operador. Los botones responden a esos permisos, pero el backend impone la misma regla:
+Spring Security valida método y ruta, independientemente de los botones:
 
-- POST /api/admin/productos, /locales, /precios: solo OPERADOR.
-- PUT /api/admin/productos/{id}, /locales/{id}, /precios/{id}: solo OPERADOR.
-- DELETE sobre esas entidades: solo ADMIN.
-- Toda escritura sigue necesitando CSRF.
+- POST/PUT/DELETE /api/admin/productos y /api/admin/locales (con ID para modificar/eliminar): solo ADMIN.
+- POST /api/admin/precios: solo OPERADOR.
+- PUT/DELETE /api/admin/precios/{id}: denegados para todos los roles.
+- Toda escritura necesita CSRF. Un USER no puede realizar ninguna operación de gestión.
 
-Probá ambas cuentas en sesiones separadas. Crear/editar como ADMIN y eliminar como OPERADOR debe devolver 403, aunque se fabrique la solicitud manualmente. Un usuario común no puede realizar ninguna de estas operaciones. Los dos roles de gestión siguen pudiendo utilizar el comparador, calculadora y PDF.
+Probá un ADMIN creando, editando y dando de baja un corte/local. Ingresá como OPERADOR: solo debe aparecer Precios con Publicar precio. Intentar crear cortes/locales como OPERADOR, publicar precios como ADMIN o modificar/eliminar precios con cualquiera de los dos roles debe devolver 403.
 
-## Apartados del panel
+## Apartados
 
-La gestión ahora se organiza en tres apartados con navegación propia:
+- /gestion.html#productos: ADMIN carga y mantiene cortes.
+- /gestion.html#locales: ADMIN carga comercios, direcciones y coordenadas.
+- /gestion.html#precios: OPERADOR carga valores por kilo y fecha para cortes/locales existentes. ADMIN consulta el historial sin acciones de escritura.
 
-- `/gestion.html#precios`: publicar valores por kilo, buscar por corte/comercio y filtrar por local. Para cargar un precio tienen que existir un corte y un local.
-- `/gestion.html#productos`: crear y editar el catálogo de cortes, con búsqueda por nombre.
-- `/gestion.html#locales`: cargar comercios, direcciones y coordenadas, con búsqueda por nombre o dirección.
-
-Cada apartado tiene columnas, explicaciones y formularios específicos. Las búsquedas solo filtran la vista: no modifican registros. Los filtros se pueden limpiar y el botón Actualizar vuelve a consultar el backend. Los estados vacíos distinguen entre falta de información y búsquedas sin resultados. La confirmación de baja identifica el registro elegido. Los permisos siguen siendo OPERADOR para altas/ediciones y ADMIN para bajas lógicas.
+El acceso directo a otro apartado no otorga permisos. Para el operador se mantiene el apartado Precios aunque se intente abrir un hash de cortes/locales. Las búsquedas y filtros no modifican registros. El administrador debe crear un corte y un local antes de que el operador pueda publicar precios. Dar de baja un corte/local oculta sus precios de las consultas públicas y preserva sus registros históricos.

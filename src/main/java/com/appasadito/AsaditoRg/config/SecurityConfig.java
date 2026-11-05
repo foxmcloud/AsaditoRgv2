@@ -28,9 +28,10 @@ public class SecurityConfig {
             .antMatchers("/", "/index.html", "/gestion.html", "/assets/**", "/error", "/api/auth/**").permitAll()
             .antMatchers(HttpMethod.GET, "/api/productos", "/api/locales", "/api/precios", "/api/precios/ultimos").permitAll()
             .antMatchers(HttpMethod.POST, "/api/presupuestos/calcular").permitAll()
-            .antMatchers(HttpMethod.POST, "/api/admin/productos", "/api/admin/locales", "/api/admin/precios").hasRole("OPERADOR")
-            .antMatchers(HttpMethod.PUT, "/api/admin/productos/*", "/api/admin/locales/*", "/api/admin/precios/*").hasRole("OPERADOR")
-            .antMatchers(HttpMethod.DELETE, "/api/admin/productos/*", "/api/admin/locales/*", "/api/admin/precios/*").hasRole("ADMIN")
+            .antMatchers(HttpMethod.POST, "/api/admin/precios").hasRole("OPERADOR")
+            .antMatchers(HttpMethod.POST, "/api/admin/productos", "/api/admin/locales").hasRole("ADMIN")
+            .antMatchers(HttpMethod.PUT, "/api/admin/productos/*", "/api/admin/locales/*").hasRole("ADMIN")
+            .antMatchers(HttpMethod.DELETE, "/api/admin/productos/*", "/api/admin/locales/*").hasRole("ADMIN")
             .antMatchers("/api/admin/**").denyAll()
             .anyRequest().authenticated())
             // CSRF remains enabled for login, logout, registration and every mutation.

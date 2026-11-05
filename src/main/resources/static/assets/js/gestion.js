@@ -20,7 +20,7 @@ const sections = {
       "Cargá el valor por kilo de cada corte y su fecha de referencia.",
     search: "Buscar por corte o comercio…",
     guidance:
-      "Cada precio pertenece a un corte y un local. Una nueva publicación conserva el historial; editar corrige el registro elegido.",
+      "Cada carga publica un precio nuevo y conserva el historial. No se modifican ni eliminan precios ya publicados.",
   },
   productos: {
     title: "Cortes",
@@ -45,6 +45,10 @@ const sections = {
 let activeKind = Object.hasOwn(sections, location.hash.slice(1))
   ? location.hash.slice(1)
   : "precios";
+const canCreate = (kind) =>
+  kind === "precios" ? session.user.operador : session.user.admin;
+const canEdit = (kind) => session.user.admin && kind !== "precios";
+const canDelete = canEdit;
 let loadRevision = 0;
 async function load() {
   const revision = ++loadRevision;
@@ -101,19 +105,25 @@ function renderManagementSession() {
     ? "PANEL DE OPERADOR"
     : "PANEL DE ADMINISTRADOR";
   $("admin-title").textContent = session.user.operador
-    ? "Actualizá la información."
-    : "Administrá las bajas del catálogo.";
+    ? "Cargá los precios del día."
+    : "Administrá cortes y locales.";
   $("management-description").textContent = session.user.operador
-    ? "Agregá y modificá cortes, locales y precios. Las bajas las realiza el administrador."
-    : "Podés dar de baja registros. Las altas y modificaciones las realiza el operador.";
-  $("admin-new").hidden = !session.user.operador;
-  if (!session.user.operador) $("admin-dialog").close();
+    ? "Publicá precios para los cortes y locales disponibles. Cada carga conserva el historial."
+    : "Agregá, modificá o da de baja cortes y locales. Los precios los carga el operador.";
+  if (session.user.operador && !session.user.admin && activeKind !== "precios")
+    activeKind = "precios";
+  $("admin-new").hidden = !canCreate(activeKind);
+  if (
+    editing &&
+    !(editing.id === null ? canCreate(editing.kind) : canEdit(editing.kind))
+  )
+    $("admin-dialog").close();
   if (!session.user.admin) $("delete-dialog").close();
   if (!staff) Object.assign(state, { products: [], stores: [], prices: [] });
   renderAdmin();
   if (staff) load();
 }
-// The server enforces OPERADOR for create/update and ADMIN for logical deletion.
+// ADMIN manages cuts/stores; OPERADOR only publishes new prices. The server enforces the same rules.
 let editing = null,
   deleting = null;
 function adminRows() {
@@ -143,6 +153,7 @@ function renderAdmin() {
     .join("");
   const section = sections[activeKind];
   document.querySelectorAll("[data-section]").forEach((link) => {
+    link.hidden = !session.user.admin && link.dataset.section !== "precios";
     if (link.dataset.section === activeKind)
       link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
@@ -150,19 +161,19 @@ function renderAdmin() {
   $("catalog-title").textContent = section.title;
   $("section-step").textContent =
     "CATÁLOGO / " + section.title.toLocaleUpperCase("es");
-  $("catalog-description").textContent = session.user.operador
-    ? section.description
-    : `Revisá los registros de ${section.title.toLocaleLowerCase("es")} y da de baja los que ya no correspondan.`;
-  $("catalog-guidance").textContent = session.user.operador
-    ? section.guidance
-    : "Las bajas son lógicas: los registros se conservan en la base. Las altas y modificaciones están a cargo del operador.";
+  $("catalog-description").textContent = section.description;
+  $("catalog-guidance").textContent = section.guidance;
+  if (session.user.admin && activeKind === "precios")
+    $("catalog-guidance").textContent =
+      "Consulta del historial de precios. La publicación de precios nuevos está a cargo del operador.";
+  $("admin-new").hidden = !canCreate(activeKind);
   $("admin-new").textContent = section.action + " +";
   $("admin-new").disabled =
     activeKind === "precios" &&
     (!state.products.length || !state.stores.length);
   if ($("admin-new").disabled && session.user.operador)
     $("catalog-guidance").textContent =
-      "Para publicar un precio, primero agregá al menos un corte y un local desde sus apartados.";
+      "Para publicar precios, el administrador debe cargar al menos un corte y un local.";
   $("catalog-search").placeholder = section.search;
   $("store-filter-label").hidden = activeKind !== "precios";
   const search = $("catalog-search").value.trim().toLocaleLowerCase("es");
@@ -186,8 +197,9 @@ function renderAdmin() {
       : activeKind === "locales"
         ? ["Local", "Dirección", "Coordenadas"]
         : ["Corte", "Referencia"];
+  const hasActions = canEdit(activeKind) || canDelete(activeKind);
   const actions = (r) =>
-    `<div class="admin-actions">${session.user.operador ? `<button class="button secondary small" data-edit="${r.id}" aria-label="Editar ${escape(r.nombre || r.producto.nombre)}">Editar</button>` : ""}${session.user.admin ? `<button class="text-button" data-delete="${r.id}" aria-label="Dar de baja ${escape(r.nombre || r.producto.nombre)}">Dar de baja</button>` : ""}</div>`;
+    `<div class="admin-actions">${canEdit(activeKind) ? `<button class="button secondary small" data-edit="${r.id}" aria-label="Editar ${escape(r.nombre || r.producto.nombre)}">Editar</button>` : ""}${canDelete(activeKind) ? `<button class="text-button" data-delete="${r.id}" aria-label="Dar de baja ${escape(r.nombre || r.producto.nombre)}">Dar de baja</button>` : ""}</div>`;
   const cells = (r) =>
     activeKind === "precios"
       ? `<th scope="row">${escape(r.producto.nombre)}</th><td>${escape(r.local.nombre)}</td><td class="price-cell">${money(r.precio)}</td><td>${date(r.fecha)}</td>`
@@ -195,12 +207,15 @@ function renderAdmin() {
         ? `<th scope="row">${escape(r.nombre)}</th><td>${escape(r.direccion)}</td><td class="muted">${escape(r.coordenada_x)}, ${escape(r.coordenada_y)}</td>`
         : `<th scope="row">${escape(r.nombre)}</th><td class="muted">Corte #${r.id} · Precio por kilo</td>`;
   $("admin-list").innerHTML = rows.length
-    ? `<table><caption class="sr-only">Registros de ${section.title}</caption><thead><tr>${headers.map((h) => `<th scope="col">${h}</th>`).join("")}<th scope="col">Acciones</th></tr></thead><tbody>${rows.map((r) => `<tr>${cells(r)}<td>${actions(r)}</td></tr>`).join("")}</tbody></table>`
+    ? `<table><caption class="sr-only">Registros de ${section.title}</caption><thead><tr>${headers.map((h) => `<th scope="col">${h}</th>`).join("")}${hasActions ? '<th scope="col">Acciones</th>' : ""}</tr></thead><tbody>${rows.map((r) => `<tr>${cells(r)}${hasActions ? `<td>${actions(r)}</td>` : ""}</tr>`).join("")}</tbody></table>`
     : `<div class="empty"><strong>${adminRows().length ? "No encontramos coincidencias." : "Todavía no hay registros en este apartado."}</strong>${adminRows().length ? "Probá con otra búsqueda o limpiá los filtros." : session.user.operador ? "Usá el botón de arriba para cargar la primera información." : "Cuando el operador cargue información, aparecerá acá."}</div>`;
 }
 function changeSection() {
   const kind = location.hash.slice(1);
-  activeKind = Object.hasOwn(sections, kind) ? kind : "precios";
+  activeKind =
+    Object.hasOwn(sections, kind) && (session.user.admin || kind === "precios")
+      ? kind
+      : "precios";
   $("catalog-search").value = "";
   $("store-filter").value = "";
   renderAdmin();
@@ -218,7 +233,7 @@ function field(name, label, type, value = "", attrs = "") {
   return `<label>${label}<input name="${name}" type="${type}" value="${escape(value)}" ${attrs} required></label>`;
 }
 function edit(id = null) {
-  if (!session.user.operador) return;
+  if (!(id === null ? canCreate(activeKind) : canEdit(activeKind))) return;
   const kind = activeKind;
   const record = id === null ? {} : adminRows().find((r) => r.id === id);
   editing = { kind, id };
@@ -288,7 +303,7 @@ $("admin-list").onclick = (event) => {
   const button = event.target.closest("button");
   if (!button) return;
   if (button.dataset.edit) edit(+button.dataset.edit);
-  if (button.dataset.delete && session.user.admin) {
+  if (button.dataset.delete && canDelete(activeKind)) {
     deleting = { kind: activeKind, id: +button.dataset.delete };
     const record = adminRows().find((r) => r.id === deleting.id);
     $("delete-record").textContent =
@@ -300,7 +315,11 @@ $("admin-list").onclick = (event) => {
 };
 $("admin-form").onsubmit = async (event) => {
   event.preventDefault();
-  if (!session.user.operador) return;
+  if (
+    !editing ||
+    !(editing.id === null ? canCreate(editing.kind) : canEdit(editing.kind))
+  )
+    return;
   const submit = event.target.querySelector("[type=submit]");
   submit.disabled = true;
   submit.textContent = "Guardando…";
@@ -326,7 +345,7 @@ $("admin-form").onsubmit = async (event) => {
   }
 };
 $("confirm-delete").onclick = async () => {
-  if (!session.user.admin) return;
+  if (!deleting || !canDelete(deleting.kind)) return;
   $("confirm-delete").disabled = true;
   try {
     await api(`/api/admin/${deleting.kind}/${deleting.id}`, {
