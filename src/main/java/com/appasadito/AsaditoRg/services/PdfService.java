@@ -5,6 +5,7 @@ import org.apache.pdfbox.pdmodel.*;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType0Font;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.springframework.stereotype.Service;
 
 import java.awt.Color;
@@ -49,6 +50,7 @@ public class PdfService {
         private final PDFont REGULAR;
         private final PDFont BOLD;
         private final PDFont TITLE;
+        private final PDImageXObject logo;
         private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         private final PDDocument document;
         private final Presupuesto quote;
@@ -61,6 +63,10 @@ public class PdfService {
             REGULAR = font("LiberationSans-Regular.ttf");
             BOLD = font("LiberationSans-Bold.ttf");
             TITLE = font("LiberationSerif-Regular.ttf");
+            try (InputStream image = PdfService.class.getResourceAsStream("/static/assets/img/Logo Asadito RG - PNG.png")) {
+                if (image == null) throw new IOException("No se encontró el logo de Asadito RG");
+                logo = PDImageXObject.createFromByteArray(document, image.readAllBytes(), "asadito-rg-logo");
+            }
         }
         private PDFont font(String name) throws IOException {
             try (InputStream source = PdfService.class.getResourceAsStream("/fonts/" + name)) {
@@ -95,9 +101,11 @@ public class PdfService {
             stream = new PDPageContentStream(document, page);
             rect(0, HEIGHT - 187, WIDTH, 187, CREAM);
             rect(0, HEIGHT - 6, WIDTH, 6, ORANGE);
-            text("ASADITO", MARGIN, HEIGHT - 57, BOLD, 22, ORANGE);
-            text("RG", MARGIN + 112, HEIGHT - 57, REGULAR, 22, ORANGE);
-            text("LA JUNTADA EMPIEZA ACÁ", MARGIN, HEIGHT - 74, BOLD, 7.3f, MUTED);
+            // Source artwork includes transparent margins. Place it without distorting the image.
+            float logoWidth = 234;
+            float logoHeight = logoWidth * logo.getHeight() / logo.getWidth();
+            stream.drawImage(logo, MARGIN - 26, HEIGHT - 96, logoWidth, logoHeight);
+            text("LA JUNTADA EMPIEZA ACÁ", MARGIN, HEIGHT - 86, BOLD, 7.3f, MUTED);
             right("Río Grande · Tierra del Fuego", WIDTH - MARGIN, HEIGHT - 53, REGULAR, 9, MUTED);
             right("PRESUPUESTO ESTIMATIVO", WIDTH - MARGIN, HEIGHT - 72, BOLD, 7.5f, ORANGE);
             text(continuation ? "Tu presupuesto, en detalle." : "Tu asado, en números.", MARGIN,
@@ -171,8 +179,8 @@ public class PdfService {
                     stream = footer;
                     stream.setStrokingColor(LINE); stream.setLineWidth(.6f);
                     stream.moveTo(MARGIN, 57); stream.lineTo(WIDTH - MARGIN, 57); stream.stroke();
-                    text("ASADITO RG", MARGIN, 39, BOLD, 8, ORANGE);
-                    text("Compará. Calculá. Compartí.", MARGIN + 76, 39, REGULAR, 8, MUTED);
+                    stream.drawImage(logo, MARGIN - 11, 22, 100, 100f * logo.getHeight() / logo.getWidth());
+                    text("Compará. Calculá. Compartí.", MARGIN + 100, 39, REGULAR, 8, MUTED);
                     right("Página " + number++ + " de " + document.getNumberOfPages(), WIDTH - MARGIN, 39, REGULAR, 8, MUTED);
                 } finally { stream = null; }
             }
