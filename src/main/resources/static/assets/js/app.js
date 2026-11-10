@@ -1,3 +1,4 @@
+import { ultimosPrecios, calcularPresupuesto } from "./presupuesto.js";
 import {
   $,
   money,
@@ -35,12 +36,15 @@ async function load() {
   $("refresh").disabled = true;
   $("mobile-cut").disabled = true;
   try {
-    const [products, stores, prices, latest] = await Promise.all(
-      ["productos", "locales", "precios", "precios/ultimos"].map((p) =>
-        api(`/api/${p}`),
-      ),
+    const [products, stores, prices] = await Promise.all(
+      ["productos", "locales", "precios"].map((p) => api(`/api/${p}`)),
     );
-    Object.assign(state, { products, stores, prices, latest });
+    Object.assign(state, {
+      products,
+      stores,
+      prices,
+      latest: ultimosPrecios(prices, products, stores),
+    });
     // Never retain quantities for products that have been deactivated.
     state.quantities = Object.fromEntries(
       Object.entries(state.quantities).filter(([id]) =>
@@ -191,25 +195,20 @@ async function calculate() {
   $("calculate").textContent = "Comparando precios…";
   const revision = state.revision;
   try {
-    const results = await Promise.all(
-      state.stores.map(async (store) => {
-        // Incomplete baskets must never look cheaper than complete ones.
-        const published = state.latest.find((s) => s.localId === store.id);
-        if (
-          request.items.some(
-            (i) => !published?.productos.some((p) => p.id === i.productoId),
-          )
+    const results = state.stores.map((store) => {
+      // Incomplete baskets must never look cheaper than complete ones.
+      const published = state.latest.find((s) => s.localId === store.id);
+      if (
+        request.items.some(
+          (i) => !published?.productos.some((p) => p.id === i.productoId),
         )
-          return { store, incomplete: true };
-        return {
-          store,
-          quote: await api("/api/presupuestos/calcular", {
-            method: "POST",
-            body: JSON.stringify({ ...request, localId: store.id }),
-          }),
-        };
-      }),
-    );
+      )
+        return { store, incomplete: true };
+      return {
+        store,
+        quote: calcularPresupuesto(store, published, request.items),
+      };
+    });
     if (revision !== state.revision) return;
     results.sort(
       (a, b) => (a.quote?.total ?? Infinity) - (b.quote?.total ?? Infinity),
@@ -265,7 +264,7 @@ function renderQuote() {
     $("whatsapp").href =
       `https://wa.me/?text=${encodeURIComponent(summary(q))}`;
   $("report-help").textContent = session.user.authenticated
-    ? "El PDF usa los precios vigentes del servidor al generarse."
+    ? "El PDF es una copia del presupuesto calculado en tu navegador."
     : "Iniciá sesión para descargar tu presupuesto en PDF.";
 }
 $("download-pdf").onclick = async () => {
@@ -277,11 +276,13 @@ $("download-pdf").onclick = async () => {
     selected = state.selected?.localId;
   $("download-pdf").disabled = true;
   try {
-    const blob = await api("/api/presupuestos/pdf", {
-      method: "POST",
-      body: JSON.stringify(payload()),
-      pdf: true,
-    });
+    session.user = await api("/api/auth/me");
+    if (!session.user.authenticated) {
+      openAuth();
+      return;
+    }
+    const { generarPDF } = await import("./reporte.js");
+    const blob = await generarPDF(state.selected);
     if (revision !== state.revision || selected !== state.selected?.localId)
       return;
     state.pdf = new File([blob], "presupuesto-asadito.pdf", {

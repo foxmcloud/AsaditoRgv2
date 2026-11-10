@@ -81,8 +81,12 @@ export async function refreshCsrf() {
 }
 export async function api(path, options = {}) {
   const headers = new Headers(options.headers);
-  if (options.body && !(options.body instanceof URLSearchParams))
-    headers.set("Content-Type", "application/json");
+  // Como en el PDF: enviar campos de formulario, no DTO de entrada.
+  if (typeof options.body === "string")
+    options = {
+      ...options,
+      body: new URLSearchParams(JSON.parse(options.body)),
+    };
   if (options.method && options.method !== "GET") {
     if (!session.csrf) await refreshCsrf();
     headers.set(session.csrf.headerName, session.csrf.token);
@@ -94,6 +98,8 @@ export async function api(path, options = {}) {
   });
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
+    if (path === "/api/login" && response.status === 401)
+      throw new Error("Email o contraseña incorrectos");
     const fields = Object.entries(body.fields || {})
       .map(([field, error]) => `${field}: ${error}`)
       .join(" · ");
@@ -173,7 +179,7 @@ $("auth-form").addEventListener("submit", async (event) => {
       $("auth-description").textContent =
         "Cuenta creada. Ingresá con tu email y contraseña.";
     } else {
-      await api("/api/auth/login", {
+      await api("/api/login", {
         method: "POST",
         body: new URLSearchParams(values),
       });
@@ -198,7 +204,7 @@ $("session-actions").onclick = async (event) => {
   if (event.target.id === "open-login") openAuth();
   if (event.target.id === "logout") {
     try {
-      await api("/api/auth/logout", { method: "POST" });
+      await api("/api/logout", { method: "POST" });
       session.user = {};
       await refreshCsrf();
       renderSession();

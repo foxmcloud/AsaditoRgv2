@@ -8,7 +8,7 @@
 | Cargar precios nuevos | No | Sí | No |
 | Editar/eliminar precios publicados | No | No | No |
 
-La gestión está en /gestion.html, separada del comparador público. ADMIN gestiona cortes y locales con bajas lógicas. OPERADOR solo ve el apartado de carga de precios; una nueva publicación conserva los valores anteriores. El administrador puede consultar ese historial. No se cambian roles ni contraseñas existentes y no hace falta migrar el esquema.
+La gestión está en /gestion.html, separada del comparador público. ADMIN gestiona cortes y locales con bajas lógicas. OPERADOR solo ve el apartado de carga de precios; una nueva publicación conserva los valores anteriores. El administrador puede consultar ese historial. El inicio de sesión se realiza por POST /api/login y el cierre por POST /api/logout, siguiendo el material del profesor; se conserva CSRF. No se cambian roles ni contraseñas existentes y no hace falta migrar el esquema.
 
 ## Crear una cuenta de operador en IntelliJ
 
@@ -62,3 +62,5 @@ El acceso directo a otro apartado no otorga permisos. Para el operador se mantie
 5. El operador ya puede iniciar sesión y cargar precios. Su contraseña queda almacenada con BCrypt; la lista y la respuesta de creación nunca la devuelven ni incluyen el hash.
 
 Solo ADMIN puede usar GET/POST /api/admin/operadores. El rol OPERADOR se asigna en el servidor y no se acepta un rol enviado desde el formulario o la API. Un USER u OPERADOR no puede crear cuentas de gestión ni listar operadores. No se agregaron acciones para modificar/eliminar cuentas ni cambiar contraseñas: este apartado permite crearlas y consultarlas. Las contraseñas se limpian del formulario al cerrarlo. Las variables de bootstrap siguen siendo una alternativa para la configuración inicial, pero no se necesitan para cada operador nuevo.
+
+Para estudiar cada clase de seguridad y los pequeños cambios de los controladores originales, consultá [Java original y sesiones](CAMBIOS_JAVA_Y_SESIONES.md) o su [PDF](CAMBIOS_JAVA_Y_SESIONES.pdf).

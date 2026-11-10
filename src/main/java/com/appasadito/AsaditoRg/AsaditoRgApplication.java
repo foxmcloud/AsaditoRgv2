@@ -1,4 +1,6 @@
 package com.appasadito.AsaditoRg;
+import com.appasadito.AsaditoRg.repositorios.UsuarioRepository;
+import com.appasadito.AsaditoRg.modelos.Usuario;
 
 import com.appasadito.AsaditoRg.modelos.Locales;
 import com.appasadito.AsaditoRg.modelos.Precios;
@@ -17,6 +19,9 @@ import org.springframework.context.annotation.Bean;
 @SpringBootApplication
 
 public class AsaditoRgApplication {
+    @Autowired
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
 
 	public static void main(String[] args) {
 		SpringApplication.run(AsaditoRgApplication.class, args);
@@ -24,7 +29,7 @@ public class AsaditoRgApplication {
 	}
 
 	@Bean
-	public CommandLineRunner initData(LocalesRepository localrepository, ProductosRepository productorepository, PreciosRepository preciorepository){
+	public CommandLineRunner initData(LocalesRepository localrepository, ProductosRepository productorepository, PreciosRepository preciorepository, UsuarioRepository usuarios){
 		return (args) -> {
 			if(productorepository.findAll().isEmpty()){
 				String[] nombre_productos = {
@@ -67,7 +72,25 @@ public class AsaditoRgApplication {
 					localrepository.save(localobj);
 				}
 			}
+            crearCuentaInicial(usuarios, "ADMIN");
+            crearCuentaInicial(usuarios, "OPERADOR");
+
 		};
 	}
 
+
+    // Igual que los clientes iniciales del PDF; las credenciales vienen del entorno, no de Git.
+    private void crearCuentaInicial(UsuarioRepository usuarios, String rol) {
+        String email = System.getenv("ASADITO_" + rol + "_EMAIL");
+        String password = System.getenv("ASADITO_" + rol + "_PASSWORD");
+        if (email == null && password == null) return;
+        if (email == null || password == null || !email.matches("^[^\\s@\"]+@[^\\s@\"]+\\.[^\\s@\"]+$")
+                || email.length() > 120 || password.isBlank() || password.length() < 10
+                || password.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72)
+            throw new IllegalStateException("Revisá ASADITO_" + rol + "_EMAIL y ASADITO_" + rol + "_PASSWORD: email sin comillas, clave de 10 caracteres mínimo/72 bytes máximo");
+        email = email.trim().toLowerCase(java.util.Locale.ROOT);
+        Usuario existente = usuarios.findByEmail(email);
+        if (existente == null) usuarios.save(new Usuario(email, passwordEncoder.encode(password), rol));
+        else if (!existente.getRol().equals(rol)) throw new IllegalStateException("El email configurado ya pertenece a otro rol");
+    }
 }
