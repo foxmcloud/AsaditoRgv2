@@ -38,6 +38,8 @@ Las pruebas usan H2 aislada en modo PostgreSQL y no modifican la base de desarro
 
 La guía principal es [Java original y sesiones](docs/CAMBIOS_JAVA_Y_SESIONES.md), también en [PDF](docs/CAMBIOS_JAVA_Y_SESIONES.pdf). Enumera todos los archivos Java conservados o agregados, compara el inicio de sesión con ModificaClient.pdf y propone ejercicios para explicarlo. La [guía de desarrollo](docs/GUIA_DESARROLLO.md) mantiene una referencia breve a los criterios de la materia.
 
+Para programar las siguientes funciones a mano, consultá la [guía de ampliaciones del backend en PDF](docs/GUIA_AMPLIACIONES_BACKEND.pdf) o su [versión editable](docs/GUIA_AMPLIACIONES_BACKEND.md). Propone movimientos, presupuestos guardados, verificaciones, confirmación de email y un chatbot opcional de WhatsApp; esas funciones todavía no están implementadas.
+
 Comparar y calcular es público. El botón de descarga solicita sesión; el PDF se calcula y genera en el navegador como presupuesto orientativo, sin endpoints Java de presupuestos. ADMIN agrega, modifica y da de baja cortes y locales. OPERADOR solo publica precios nuevos; no edita ni elimina registros. Los precios publicados se conservan como historial. WhatsApp recibe el resumen de texto mediante `wa.me`; el PDF se adjunta manualmente o se comparte desde el menú del dispositivo si soporta Web Share de archivos. La aplicación no manda mensajes automáticamente.
 
 ## Paneles por rol
