@@ -1,20 +1,21 @@
 package com.appasadito.AsaditoRg.controllers;
 
+import com.appasadito.AsaditoRg.dtos.MovimientosDTO;
+import com.appasadito.AsaditoRg.dtos.PresupuestosDTO;
 import com.appasadito.AsaditoRg.modelos.*;
 import com.appasadito.AsaditoRg.repositorios.*;
 import com.appasadito.AsaditoRg.services.MovimientosService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import javax.transaction.Transactional;
+
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -35,20 +36,68 @@ public class PresupuestoController {
 
 
 
-    @GetMapping("/api/presupuestos")
-    public List<Presupuestos> getPresupuestos(Authentication authentication){
+    @GetMapping("/presupuestos")
+    public List<PresupuestosDTO> getPresupuestos(Authentication authentication){
         Usuario usuario = usuarioRepository.findByEmail(authentication.getName());
-        return presupuestosRepository.findByIdUsuario_Id(usuario.getId());
+        return presupuestosRepository.findByUsuario_Id(usuario.getId()).stream().map(presupuesto -> new PresupuestosDTO(presupuesto)).collect(Collectors.toList());
+
+
     }
 
-    @PostMapping("/api/presupuestos")
+    @GetMapping("/presupuestos/{id}")
+    @Transactional(readOnly = true)
+    public Map<String, Object> getPresupuesto(@PathVariable int id, Authentication authentication){
+        Usuario usuario = usuarioRepository.findByEmail(authentication.getName());
+        Presupuestos presupuesto = presupuestosRepository
+                .findByIdAndUsuario_Id(id, usuario.getId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Presupuesto inexistente"
+                ));
+
+        // Convertir los detalles a una lista de Maps
+        List<Map<String, Object>> detalles =
+                presupuesto.getDetalles().stream()
+                        .map(detalle -> {
+                            Map<String, Object> item =
+                                    new LinkedHashMap<>();
+
+                            item.put("id", detalle.getId());
+                            item.put("corteNombre",
+                                    detalle.getCorteNombre());
+                            item.put("cantidad",
+                                    detalle.getCantidad());
+                            item.put("precioKg",
+                                    detalle.getPrecioKg());
+                            item.put("subtotal",
+                                    detalle.getSubtotal());
+
+                            return item;
+                        })
+                        .collect(Collectors.toList());
+
+        // Construir la respuesta del presupuesto
+        Map<String, Object> respuesta = new LinkedHashMap<>();
+
+        respuesta.put("id", presupuesto.getId());
+        respuesta.put("fecha", presupuesto.getFecha());
+        respuesta.put("localNombre", presupuesto.getLocalnombre());
+        respuesta.put("localDireccion", presupuesto.getLocalDireccion());
+        respuesta.put("moneda", presupuesto.getMoneda());
+        respuesta.put("total", presupuesto.getTotal());
+        respuesta.put("detalles", detalles);
+
+        return respuesta;
+    }
+
+    @PostMapping("/presupuestos")
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional
     public Map<String, Object> guardar(@RequestParam int localId, @RequestParam List<Integer> productosId,
                                        @RequestParam List<Double> cantidades, Authentication authentication) {
 
         Usuario usuario = usuarioRepository.findByEmail(authentication.getName());
-        Locales local = localesRepository.findById(localId);
+        Locales local = localesRepository.findById(localId).orElseThrow();
 
         Double subtotal;
         Double total = 0.0;
@@ -89,6 +138,7 @@ public class PresupuestoController {
         presupuestonuevo.setLocalnombre(local.getNombre());
         presupuestonuevo.setLocalDireccion(local.getDireccion());
 
+
         for (int i = 0; i < cantidades.size(); i++) {
             Productos producto = productosRepository.findById(productosId.get(i))
                     .filter(Productos::isActivo)
@@ -107,6 +157,7 @@ public class PresupuestoController {
             detalle.setCorteNombre(producto.getNombre());
             detalle.setPrecioKg(precio.getPrecio());
             detalle.setSubtotal(subtotal);
+            detalle.setPresupuesto(presupuestonuevo);
 
             presupuestonuevo.agregarDetalle(detalle);
 

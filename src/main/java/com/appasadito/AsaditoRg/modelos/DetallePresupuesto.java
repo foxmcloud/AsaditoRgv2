@@ -96,7 +96,7 @@ public class DetallePresupuesto {
         this.subtotal = subtotal;
     }
 
-    public void setPresupuesto(Presupuestos presupuestos) {
-
+    public void setPresupuesto(Presupuestos presupuesto) {
+        this.presupuesto = presupuesto;
     }
 }

@@ -1,9 +1,12 @@
 package com.appasadito.AsaditoRg.repositorios;
 
+import com.appasadito.AsaditoRg.modelos.Presupuestos;
 import com.appasadito.AsaditoRg.modelos.Productos;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface ProductosRepository extends JpaRepository<Productos , Integer> {
+import java.util.Optional;
 
-    Productos findByIdAndIsActivo(Integer productid);
+public interface ProductosRepository extends JpaRepository<Productos, Integer> {
+
+    Optional<Productos> findByIdAndActivoTrue(Integer productid);
 }

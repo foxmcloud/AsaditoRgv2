@@ -285,6 +285,25 @@ $("download-pdf").onclick = async () => {
     const blob = await generarPDF(state.selected);
     if (revision !== state.revision || selected !== state.selected?.localId)
       return;
+    // Guardar automáticamente el presupuesto
+    const presupuesto = state.selected;
+
+    const form = new URLSearchParams();
+
+    form.set("localId", presupuesto.localId);
+
+// Ajustar "items" según la estructura real de state.selected
+    presupuesto.items.forEach(item => {
+      form.append("productosId", item.productoId);
+      form.append("cantidades", item.cantidad);
+    });
+
+    const guardado = await api("/api/presupuestos", {
+      method: "POST",
+      body: form
+    });
+
+    console.log("Presupuesto guardado:", guardado);
     state.pdf = new File([blob], "presupuesto-asadito.pdf", {
       type: "application/pdf",
     });

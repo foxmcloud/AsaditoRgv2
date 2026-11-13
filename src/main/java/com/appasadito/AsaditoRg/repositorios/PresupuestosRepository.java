@@ -9,6 +9,6 @@ import java.util.Optional;
 public interface PresupuestosRepository extends JpaRepository<Presupuestos, Integer> {
 
     Optional<Presupuestos> findByIdAndUsuario_Id(int id, Long usuarioId);
-    List<Presupuestos> findByIdUsuario_Id(Long usuarioId);
+    List<Presupuestos> findByUsuario_Id(Long usuarioId);
 
 }

@@ -65,17 +65,19 @@ class SesionesYPanelesTests {
     }
     @ParameterizedTest @ValueSource(strings = {"USER", "OPERADOR", "ADMIN"})
     void permisosDeCadaPanel(String rol) throws Exception {
-        mvc.perform(post("/api/admin/productos").with(user("cuenta").authorities(new SimpleGrantedAuthority(rol))).with(csrf()).param("nombre", "Corte nuevo"))
+        // La auditoría consulta al usuario autenticado en la base.
+        usuarios.saveAndFlush(new Usuario("cuenta@example.com", encoder.encode("ClaveDePrueba123"), rol));
+        mvc.perform(post("/api/admin/productos").with(user("cuenta@example.com").authorities(new SimpleGrantedAuthority(rol))).with(csrf()).param("nombre", "Corte nuevo"))
             .andExpect(status().is(rol.equals("ADMIN") ? 201 : 403));
-        mvc.perform(put("/api/admin/productos/" + corte.getId()).with(user("cuenta").authorities(new SimpleGrantedAuthority(rol))).with(csrf()).param("nombre", "Corte editado"))
+        mvc.perform(put("/api/admin/productos/" + corte.getId()).with(user("cuenta@example.com").authorities(new SimpleGrantedAuthority(rol))).with(csrf()).param("nombre", "Corte editado"))
             .andExpect(status().is(rol.equals("ADMIN") ? 200 : 403));
-        mvc.perform(post("/api/admin/precios").with(user("cuenta").authorities(new SimpleGrantedAuthority(rol))).with(csrf())
+        mvc.perform(post("/api/admin/precios").with(user("cuenta@example.com").authorities(new SimpleGrantedAuthority(rol))).with(csrf())
             .param("localId", "" + local.getId()).param("productoId", "" + corte.getId()).param("precio", "12500.50").param("fecha", LocalDate.now().toString()))
             .andExpect(status().is(rol.equals("OPERADOR") ? 201 : 403));
-        mvc.perform(delete("/api/admin/productos/" + corte.getId()).with(user("cuenta").authorities(new SimpleGrantedAuthority(rol))).with(csrf()))
+        mvc.perform(delete("/api/admin/productos/" + corte.getId()).with(user("cuenta@example.com").authorities(new SimpleGrantedAuthority(rol))).with(csrf()))
             .andExpect(status().is(rol.equals("ADMIN") ? 204 : 403));
         assertEquals(!rol.equals("ADMIN"), productos.findById(corte.getId()).orElseThrow().isActivo());
-        mvc.perform(get("/api/admin/operadores").with(user("cuenta").authorities(new SimpleGrantedAuthority(rol))))
+        mvc.perform(get("/api/admin/operadores").with(user("cuenta@example.com").authorities(new SimpleGrantedAuthority(rol))))
             .andExpect(status().is(rol.equals("ADMIN") ? 200 : 403));
     }
     @Test void adminCreaOperadorConPasswordHasheado() throws Exception {

@@ -141,6 +141,10 @@ function renderSession() {
       ? "Panel de operador"
       : "Administrar catálogo";
   }
+  const usuario_logeado = $("usuario-logeado");
+  if (usuario_logeado) {
+    usuario_logeado.hidden = !(logged);
+  }
   onChange();
 }
 export function openAuth() {
