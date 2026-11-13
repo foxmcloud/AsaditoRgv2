@@ -18,13 +18,15 @@ public class WebAuthorization {
         http.authorizeRequests()
             .antMatchers("/", "/index.html", "/gestion.html", "/assets/**", "/error", "/api/login", "/api/logout", "/api/auth/**").permitAll()
             .antMatchers(HttpMethod.GET, "/api/productos", "/api/locales", "/api/precios", "/api/precios/ultimos").permitAll()
-            .antMatchers(HttpMethod.GET, "/api/admin/operadores").hasAuthority("ADMIN")
+            .antMatchers(HttpMethod.GET, "/api/admin/operadores", "/api/admin/movimientos").hasAuthority("ADMIN")
             .antMatchers(HttpMethod.POST, "/api/admin/operadores", "/api/admin/productos", "/api/admin/locales").hasAuthority("ADMIN")
             .antMatchers(HttpMethod.PUT, "/api/admin/productos/*", "/api/admin/locales/*").hasAuthority("ADMIN")
             .antMatchers(HttpMethod.DELETE, "/api/admin/productos/*", "/api/admin/locales/*").hasAuthority("ADMIN")
             .antMatchers(HttpMethod.POST, "/api/admin/precios").hasAuthority("OPERADOR")
             .antMatchers("/api/admin/**").denyAll()
-            .anyRequest().authenticated();
+            .anyRequest().authenticated()
+
+        ;
         http.formLogin().loginProcessingUrl("/api/login")
             .usernameParameter("email").passwordParameter("password")
             .successHandler((req, res, auth) -> {

@@ -49,7 +49,7 @@ public class UsuarioController {
         email = email.trim().toLowerCase(Locale.ROOT);
         if (!email.matches("^[^\\s@\\\"]+@[^\\s@\\\"]+\\.[^\\s@\\\"]+$") || email.length() > 120
                 || password.isBlank() || password.length() < 10 || password.getBytes(StandardCharsets.UTF_8).length > 72)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Revisá el email y la contraseña (mínimo 10 caracteres, máximo 72 bytes UTF-8)");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Revisá el email y la contraseña");
         if (usuarioRepository.findByEmail(email) != null)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ese email ya tiene una cuenta. Usá un email diferente.");
         usuarioRepository.saveAndFlush(new Usuario(email, passwordEncoder.encode(password), rol));

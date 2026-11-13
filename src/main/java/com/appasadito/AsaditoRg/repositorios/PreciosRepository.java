@@ -8,7 +8,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface PreciosRepository extends JpaRepository<Precios, Integer> {
 
@@ -18,5 +20,8 @@ public interface PreciosRepository extends JpaRepository<Precios, Integer> {
             "WHERE p2.activo = true AND p2.producto.id = p.producto.id AND p2.local.id = p.local.id) " +
             "ORDER BY p.local.nombre, p.producto.nombre")
     List<Object[]> obtenerUltimosPrecios();
+
+    Precios findFirstByLocal_IdAndProducto_IdAndActivoTrueAndFechaLessThanEqualOrderByFechaDescIdDesc(
+            int localId, int productoId, LocalDate fecha);
 
 }
