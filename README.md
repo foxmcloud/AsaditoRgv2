@@ -67,3 +67,7 @@ En pantallas de hasta 760 px, el comparador utiliza un selector de corte y tarje
 Se restauraron los cuatro DTO originales (solo se corrigió una asignación faltante en PreciosDTO), los repositorios de locales y productos y PreciosService. Los controladores originales reciben los formularios con `@RequestParam`. Las sesiones se configuran en `configurations/WebAuthentication` y `WebAuthorization`, con `POST /api/login` y `POST /api/logout`, siguiendo el material del profesor y conservando CSRF. Las contraseñas y roles existentes se conservan.
 
 La calculadora y el PDF pasaron a `presupuesto.js` y `reporte.js`; se retiraron los servicios Java y DTO adicionales de presupuestos. No hay PDFBox, JWT ni autenticación propia. Se conserva el tipo `float` original para precios, con su límite de precisión explicado en la guía.
+
+## Mis presupuestos
+
+`/mis-presupuestos.html` integra el historial con el diseño y la sesión actuales. Incluye tarjetas, búsqueda/orden, paginación, detalle móvil y regeneración del PDF con los importes guardados. Consume el listado y el GET por ID que estás implementando en Java; esta integración no agrega esos controladores. Revisá [el contrato y las pruebas del frontend](docs/MIS_PRESUPUESTOS.md).

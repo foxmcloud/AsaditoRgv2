@@ -108,7 +108,7 @@ export async function generarPDF(presupuesto) {
       { align: "right" },
     );
     texto(
-      "PRESUPUESTO ESTIMATIVO",
+      presupuesto.guardado ? `PRESUPUESTO GUARDADO #${presupuesto.presupuestoId}` : "PRESUPUESTO ESTIMATIVO",
       ancho - margen,
       72,
       7.5,
@@ -125,7 +125,7 @@ export async function generarPDF(presupuesto) {
       122,
     );
     texto(
-      "Generado el " +
+      (presupuesto.guardado ? "Guardado el " : "Generado el ") +
         date(presupuesto.generado) +
         "   /   Moneda: ARS · Pesos argentinos",
       margen,
@@ -134,6 +134,7 @@ export async function generarPDF(presupuesto) {
       "normal",
       "gris",
     );
+    if (presupuesto.guardado) texto("PDF regenerado el " + date(presupuesto.regenerado), margen, 160, 8, "normal", "gris");
     doc.setFont("Texto", "bold");
     doc.setFontSize(13);
     const nombre = doc.splitTextToSize(presupuesto.localNombre, contenido - 34);
@@ -160,7 +161,7 @@ export async function generarPDF(presupuesto) {
   function encabezado() {
     caja(margen, y, contenido, 30, "verde", 5);
     texto(
-      "CORTE / FECHA DEL PRECIO",
+      presupuesto.guardado ? "CORTE / PRECIO GUARDADO" : "CORTE / FECHA DEL PRECIO",
       margen + 12,
       y + 19,
       7.5,
@@ -191,7 +192,7 @@ export async function generarPDF(presupuesto) {
       texto(linea, margen + 12, y + 20 + i * 13, 10, "bold"),
     );
     texto(
-      "Precio del " + date(item.fecha),
+      item.fecha ? "Precio del " + date(item.fecha) : "Importe guardado en el presupuesto",
       margen + 12,
       y + 22 + nombre.length * 13,
       8,
@@ -226,7 +227,7 @@ export async function generarPDF(presupuesto) {
   if (y + 163 > alto - 85) pagina(true);
   y += 20;
   caja(margen, y, contenido, 81, "verde", 9);
-  texto("TOTAL ESTIMADO", margen + 17, y + 25, 9, "bold", "blanco");
+  texto(presupuesto.guardado ? "TOTAL GUARDADO" : "TOTAL ESTIMADO", margen + 17, y + 25, 9, "bold", "blanco");
   texto(
     `${presupuesto.items.length} ${presupuesto.items.length === 1 ? "corte" : "cortes"} · ${String(presupuesto.items.reduce((suma, i) => suma + i.cantidad, 0)).replace(".", ",")} kg en total`,
     margen + 17,

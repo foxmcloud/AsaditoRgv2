@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#af4427">
+    <title>Mis presupuestos · Asadito RG</title>
+    <link rel="stylesheet" href="/assets/css/app.css">
+    <link rel="stylesheet" href="/assets/css/mis-presupuestos.css">
+    <script type="module" src="/assets/js/mis-presupuestos.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a
+        class="brand brand-with-logo"
+        href="/"
+        aria-label="Asadito RG, inicio"
+        ><img
+          class="brand-logo"
+          src="/assets/img/Logo%20Asadito%20RG%20-%20PNG.png"
+          alt="Asadito RG"
+          width="2481"
+          height="897"
+        /><span class="brand-caption">RÍO GRANDE · TIERRA DEL FUEGO</span></a
+      >
+      <nav aria-label="Navegación principal">
+        <a href="/#comparador">Comparar precios</a
+        ><a href="/#calculadora">Mi presupuesto</a
+        ><a href="/mis-presupuestos.html" id="history-link" aria-current="page">Mis presupuestos</a
+        ><a href="/gestion.html" id="admin-link" hidden>Administrar</a>
+      </nav>
+      <div id="session-actions">
+        <button class="button small" id="open-login">Ingresar</button>
+      </div>
+    </header>
+    <main class="section history-page" id="historial">
+      <section class="history-intro" aria-labelledby="history-title">
+        <div><span class="eyebrow">TUS NÚMEROS, SIEMPRE A MANO</span>
+          <h1 id="history-title">Mis presupuestos</h1>
+          <p>Los planes se guardan. La juntada se repite.<br>Volvé a tus cortes, cantidades y comercios cuando los necesites.</p>
+        </div>
+        <aside class="history-note"><span aria-hidden="true">↺</span><div><strong>Tu presupuesto conserva sus precios</strong>
+          <p>Regenerá el PDF con los importes que guardaste, aunque el catálogo haya cambiado.</p></div></aside>
+      </section>
+      <div class="history-toolbar">
+        <label>Buscar en esta página<input type="search" id="buscar" placeholder="Comercio o número de presupuesto" autocomplete="off" disabled></label>
+        <label>Ordenar esta página<select id="orden" disabled><option value="reciente">Más recientes</option><option value="antiguo">Más antiguos</option><option value="menor">Menor importe</option><option value="mayor">Mayor importe</option></select></label>
+        <button id="actualizar" class="button secondary" disabled>Actualizar</button>
+      </div>
+      <div class="history-results-heading"><h2>Tu historial</h2><p id="conteo" class="muted" role="status" aria-live="polite">Comprobando tu sesión…</p></div>
+      <section id="listado" class="history-grid" aria-label="Presupuestos guardados" aria-busy="true"></section>
+      <nav id="paginacion" class="history-pagination" aria-label="Páginas del historial" hidden><button id="anterior" class="button secondary small">Anterior</button><span id="pagina"></span><button id="siguiente" class="button secondary small">Siguiente</button></nav>
+    </main>
+    <div id="notice" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+    <dialog id="detalle-dialogo" class="history-dialog" aria-labelledby="detalle-titulo">
+      <button class="close-dialog" data-close="detalle-dialogo" aria-label="Cerrar detalle">×</button>
+      <span class="eyebrow">TU ASADO, EN DETALLE</span><h2 id="detalle-titulo">Presupuesto</h2>
+      <div id="detalle-contenido"></div>
+      <button id="detalle-pdf" class="button full" disabled>Regenerar PDF</button>
+    </dialog>
+    <footer>
+      <a class="brand brand-with-logo footer-logo" href="/"
+        ><img
+          class="brand-logo"
+          src="/assets/img/Logo%20Asadito%20RG%20-%20PNG.png"
+          alt="Asadito RG, inicio"
+          width="2481"
+          height="897"
+          loading="lazy"
+      /></a>
+      <p>Una herramienta para planear la juntada, comercio por comercio.</p>
+      <small
+        >Río Grande, Tierra del Fuego · Precios sujetos a confirmación.</small
+      >
+    </footer>
+    <dialog id="auth-dialog" aria-labelledby="auth-title">
+      <button class="close-dialog" data-close="auth-dialog" aria-label="Cerrar">
+        ×</button
+      ><span class="eyebrow">BIENVENIDO A LA MESA</span>
+      <h2 id="auth-title">Ingresá a tu cuenta</h2>
+      <p id="auth-description" class="muted">
+        Descargá tu presupuesto y llevalo a la juntada.
+      </p>
+      <form id="auth-form">
+        <label
+          >Email<input
+            name="email"
+            type="email"
+            autocomplete="username"
+            maxlength="120"
+            required /></label
+        ><label
+          >Contraseña<input
+            id="auth-password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+            maxlength="72"
+        /></label>
+        <p id="auth-error" class="form-error" role="alert"></p>
+        <button class="button full" type="submit" id="auth-submit">
+          Ingresar
+        </button>
+      </form>
+      <button class="text-button" id="auth-toggle">
+        ¿Primera vez? Creá tu cuenta
+      </button>
+    </dialog>
+  </body>
+</html>

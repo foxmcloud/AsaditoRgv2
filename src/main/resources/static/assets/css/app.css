@@ -96,6 +96,7 @@ select:focus-visible {
 }
 .site-header nav {
   display: flex;
+  flex-wrap: wrap;
   gap: 28px;
   font-size: 13px;
   font-weight: 600;

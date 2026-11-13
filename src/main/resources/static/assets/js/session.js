@@ -110,7 +110,7 @@ export async function api(path, options = {}) {
     if (response.status === 403) {
       session.csrf = null;
     }
-    throw new Error(
+    const error = new Error(
       [
         body.message ||
           `No se pudo completar la operación (${response.status})`,
@@ -121,6 +121,8 @@ export async function api(path, options = {}) {
         .filter(Boolean)
         .join(". "),
     );
+    error.status = response.status;
+    throw error;
   }
   if (response.status === 204) return null;
   return options.pdf ? response.blob() : response.json();
@@ -130,6 +132,8 @@ function renderSession() {
   $("session-actions").innerHTML = logged
     ? `<span class="session-name" title="${escape(session.user.email)}">${escape(session.user.email)}</span><button id="logout" class="button secondary small">Salir</button>`
     : '<button class="button small" id="open-login">Ingresar</button>';
+  const historyLink = $("history-link");
+  if (historyLink) historyLink.hidden = !logged;
   const link = $("admin-link");
   if (link) {
     link.hidden = !(session.user.admin || session.user.operador);
