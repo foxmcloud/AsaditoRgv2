@@ -14,6 +14,6 @@ public class ApiErrors {
     }
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<?> baseDeDatos() {
-        return ResponseEntity.status(409).body(Map.of("message", "La base rechazó el guardado. Revisá el diagnóstico de precios y la secuencia de IDs si importaste datos."));
+        return ResponseEntity.status(409).body(Map.of("message", "No se pudo guardar por un conflicto con datos existentes. Actualizá la página antes de volver a intentarlo."));
     }
 }

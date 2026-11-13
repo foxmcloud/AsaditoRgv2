@@ -7,6 +7,7 @@
     <title>Mis presupuestos · Asadito RG</title>
     <link rel="stylesheet" href="/assets/css/app.css">
     <link rel="stylesheet" href="/assets/css/mis-presupuestos.css">
+    <link rel="stylesheet" href="/assets/css/verificaciones.css">
     <script type="module" src="/assets/js/mis-presupuestos.js"></script>
   </head>
   <body>
@@ -27,6 +28,7 @@
         <a href="/#comparador">Comparar precios</a
         ><a href="/#calculadora">Mi presupuesto</a
         ><a href="/mis-presupuestos.html" id="history-link" aria-current="page">Mis presupuestos</a
+        ><a href="/resultados-presupuestos.html" id="results-link" hidden>Mis resultados</a
         ><a href="/gestion.html" id="admin-link" hidden>Administrar</a>
       </nav>
       <div id="session-actions">
@@ -40,7 +42,7 @@
           <p>Los planes se guardan. La juntada se repite.<br>Volvé a tus cortes, cantidades y comercios cuando los necesites.</p>
         </div>
         <aside class="history-note"><span aria-hidden="true">↺</span><div><strong>Tu presupuesto conserva sus precios</strong>
-          <p>Regenerá el PDF con los importes que guardaste, aunque el catálogo haya cambiado.</p></div></aside>
+          <p>Regenerá el PDF con los importes que guardaste, aunque el catálogo haya cambiado.</p><a href="/resultados-presupuestos.html">Ver mis resultados ↗</a></div></aside>
       </section>
       <div class="history-toolbar">
         <label>Buscar en esta página<input type="search" id="buscar" placeholder="Comercio o número de presupuesto" autocomplete="off" disabled></label>
@@ -57,6 +59,25 @@
       <span class="eyebrow">TU ASADO, EN DETALLE</span><h2 id="detalle-titulo">Presupuesto</h2>
       <div id="detalle-contenido"></div>
       <button id="detalle-pdf" class="button full" disabled>Regenerar PDF</button>
+    </dialog>
+    <dialog id="verificacion-dialogo" class="verification-dialog" aria-labelledby="verificacion-titulo">
+      <button class="close-dialog" data-close="verificacion-dialogo" aria-label="Cerrar verificación">×</button>
+      <span class="eyebrow">DESPUÉS DE LA COMPRA</span><h2 id="verificacion-titulo">Verificar presupuesto</h2>
+      <p id="verificacion-local" class="muted"></p>
+      <div class="verification-estimate"><span>Total estimado</span><strong id="verificacion-estimado"></strong></div>
+      <p id="verificacion-cargando" class="muted" role="status">Consultando la verificación…</p>
+      <div id="verificacion-resultado"></div>
+      <form id="verificacion-form" hidden>
+        <p class="muted">Compará la misma compra: los mismos cortes, kilos y comercio, sin sumar envío u otros productos.</p>
+        <label for="verificacion-total">¿Cuánto pagaste en total? (ARS)</label>
+        <input id="verificacion-total" name="totalReal" type="number" inputmode="decimal" min="0.01" max="999999999999.99" step="0.01" required>
+        <label for="verificacion-observacion">Observaciones (opcional)</label>
+        <textarea id="verificacion-observacion" name="observaciones" maxlength="300" rows="3" placeholder="¿Hubo alguna diferencia en la compra?"></textarea>
+        <p class="muted">El resultado es acorde si la diferencia está dentro del ±5 %. Podés registrar una sola verificación por presupuesto.</p>
+        <button id="verificacion-submit" class="button full" type="submit">Guardar verificación</button>
+      </form>
+      <p id="verificacion-error" class="form-error" role="alert"></p>
+      <button id="verificacion-reintentar" class="text-button" hidden>Volver a consultar</button>
     </dialog>
     <footer>
       <a class="brand brand-with-logo footer-logo" href="/"

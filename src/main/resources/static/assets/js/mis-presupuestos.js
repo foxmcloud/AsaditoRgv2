@@ -1,14 +1,24 @@
-import { $, money, date, escape, api, session, notice, openAuth, onSessionChange, initSession } from "./session.js";
+import { $, money, date, escape, api, session, openAuth, onSessionChange, initSession } from "./session.js";
 import { listadoGuardado, adaptarPresupuestoGuardado } from "./presupuesto-guardado.js";
+import { prepararVerificacion, obtenerVerificacion, resultadoHTML, notificarVerificacion } from "./verificaciones-ui.js";
 
 const PRESUPUESTOS_URL = "/api/presupuestos";
 const state = { filas: [], pagina: 0, paginas: 1, usuario: null, revision: 0, consulta: 0, detalle: 0, ocupados: new Set(), iniciada: false };
+state.verificaciones = new Map();
+state.presupuestoDetalle = null;
+let enlaceAbierto = false;
+const formularioVerificacion = prepararVerificacion({
+  vigente: usuario => state.usuario === usuario && session.user.authenticated,
+  alGuardar: (id, verificacion) => {
+    state.verificaciones.set(id, verificacion);
+    if (state.filas.some(p => p.id === id)) renderizar();
+    if (state.presupuestoDetalle?.id === id && $("detalle-verificacion"))
+      $("detalle-verificacion").innerHTML = resultadoHTML(verificacion);
+  },
+});
 const cantidad = n => `${new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 }).format(n)} kg`;
 function informar(texto, error = false) {
-  // Los descendientes del diálogo se muestran sobre su backdrop nativo.
-  const destino = $("detalle-dialogo").open ? $("detalle-dialogo") : document.body;
-  destino.append($("notice"));
-  notice(texto, error);
+  notificarVerificacion(texto, error);
 }
 function mensaje(titulo, texto, accion = "") {
   $("listado").innerHTML = `<div class="history-empty"><span aria-hidden="true">↺</span><h3>${escape(titulo)}</h3><p>${escape(texto)}</p>${accion}</div>`;
@@ -43,7 +53,7 @@ function renderizar() {
     <div class="saved-budget-top"><span class="saved-budget-number">N.º ${p.id}</span><span class="saved-budget-date">${escape(date(p.fecha))}</span></div>
     <h3>${escape(p.localNombre)}</h3><p class="saved-budget-address">${escape(p.localDireccion || "Dirección no informada")}</p>
     <div class="saved-budget-total"><span>Total guardado · ARS</span><strong>${money(p.total)}</strong></div>
-    <div class="saved-budget-actions"><button class="button secondary small" data-ver="${p.id}" aria-label="Ver detalle del presupuesto ${p.id}">Ver detalle</button><button class="button small" data-pdf="${p.id}" aria-label="Regenerar PDF del presupuesto ${p.id}">Regenerar PDF</button></div>
+    <div class="saved-budget-actions"><button class="button secondary small" data-ver="${p.id}" aria-label="Ver detalle del presupuesto ${p.id}">Ver detalle</button><button class="button small" data-pdf="${p.id}" aria-label="Regenerar PDF del presupuesto ${p.id}">Regenerar PDF</button><button class="button secondary small verification-action" data-verificar="${p.id}">${state.verificaciones.get(p.id) ? "Ver verificación" : "Verificar compra"}</button></div>
   </article>`).join("");
   actualizarBotonesPdf();
 }
@@ -96,15 +106,29 @@ async function abrirDetalle(id) {
     const p = await consultarDetalle(id);
     if (revision !== state.revision || consulta !== state.detalle || !dialogo.open) return;
     $("detalle-titulo").textContent = p.localNombre;
+    state.presupuestoDetalle = { id: p.presupuestoId, localNombre: p.localNombre, total: p.total };
     $("detalle-contenido").innerHTML = `<p class="muted">Presupuesto N.º ${p.presupuestoId} · Guardado el ${date(p.generado)}</p><p class="saved-detail-address">${escape(p.direccion)}</p>
       <ul class="saved-detail-items">${p.items.map(item => `<li><h3>${escape(item.nombre)}</h3><dl><div><dt>Cantidad</dt><dd>${cantidad(item.cantidad)}</dd></div><div><dt>Precio por kilo</dt><dd>${money(item.precio)}</dd></div><div><dt>Subtotal</dt><dd>${money(item.subtotal)}</dd></div></dl></li>`).join("")}</ul>
-      <div class="saved-detail-total"><span>Total guardado</span><strong>${money(p.total)}</strong></div><p class="muted">Estos importes pertenecen al presupuesto original. Confirmá vigencia y disponibilidad antes de comprar.</p>`;
+      <div class="saved-detail-total"><span>Total guardado</span><strong>${money(p.total)}</strong></div><p class="muted">Estos importes pertenecen al presupuesto original. Confirmá vigencia y disponibilidad antes de comprar.</p><section id="detalle-verificacion" aria-live="polite"><p class="muted">Consultando tu verificación…</p></section>`;
     $("detalle-pdf").dataset.pdf = String(id);
     actualizarBotonesPdf();
+    cargarVerificacionDetalle(id, consulta, revision);
   } catch (error) {
     if (revision !== state.revision || consulta !== state.detalle || !dialogo.open) return;
     $("detalle-contenido").textContent = error.status === 404 ? "El presupuesto no existe o no pertenece a tu cuenta." : "No pudimos recuperar el detalle. Cerrá esta ventana y volvé a intentarlo.";
     informar(error.message, true);
+  }
+}
+async function cargarVerificacionDetalle(id, consulta, revision) {
+  try {
+    const v = await obtenerVerificacion(id);
+    if (revision !== state.revision || consulta !== state.detalle || !$("detalle-dialogo").open) return;
+    state.verificaciones.set(id, v);
+    $("detalle-verificacion").innerHTML = v ? resultadoHTML(v) : `<div class="verification-pending"><h3>¿Ya hiciste la compra?</h3><p>Registrá cuánto pagaste y comparalo con este presupuesto.</p><button class="button secondary" data-verificar="${id}">Verificar compra</button></div>`;
+    if (state.filas.length) renderizar();
+  } catch (error) {
+    if (revision !== state.revision || consulta !== state.detalle || !$("detalle-dialogo").open) return;
+    $("detalle-verificacion").innerHTML = `<div class="verification-pending"><p>No pudimos consultar la verificación. El presupuesto sigue disponible.</p><button class="text-button" data-verificar="${id}">Volver a consultar</button></div>`;
   }
 }
 async function descargar(id) {
@@ -143,6 +167,9 @@ function sesionActualizada() {
   state.detalle++;
   state.usuario = session.user.authenticated ? session.user.email : null;
   state.ocupados.clear();
+  state.verificaciones.clear();
+  state.presupuestoDetalle = null;
+  formularioVerificacion.cerrar();
   state.filas = [];
   if ($("detalle-dialogo").open) $("detalle-dialogo").close();
   $("paginacion").hidden = true;
@@ -151,6 +178,11 @@ function sesionActualizada() {
   $("buscar").disabled = $("orden").disabled = $("actualizar").disabled = !state.usuario;
   if (state.usuario) {
     cargar();
+    const id = Number(new URLSearchParams(location.search).get("presupuesto"));
+    if (!enlaceAbierto && Number.isSafeInteger(id) && id > 0) {
+      enlaceAbierto = true;
+      abrirDetalle(id);
+    }
   } else {
     $("conteo").textContent = "Tu historial es privado";
     mensaje("Tus presupuestos te esperan", "Ingresá con tu cuenta para consultar tus planes y regenerar sus PDF.", '<button class="button" data-action="ingresar">Ingresar a mi cuenta</button>');
@@ -173,6 +205,11 @@ document.addEventListener("click", event => {
   if (!boton || boton.disabled) return;
   if (boton.dataset.ver) abrirDetalle(Number(boton.dataset.ver));
   if (boton.dataset.pdf) descargar(Number(boton.dataset.pdf));
+  if (boton.dataset.verificar) {
+    const id = Number(boton.dataset.verificar);
+    const presupuesto = state.filas.find(p => p.id === id) || (state.presupuestoDetalle?.id === id ? state.presupuestoDetalle : null);
+    if (presupuesto) formularioVerificacion.abrir(presupuesto);
+  }
   if (boton.dataset.action === "ingresar") openAuth();
   if (boton.dataset.action === "reintentar") cargar(state.pagina);
   if (boton.dataset.action === "limpiar") { $("buscar").value = ""; renderizar(); $("buscar").focus(); }

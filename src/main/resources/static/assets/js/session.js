@@ -134,6 +134,8 @@ function renderSession() {
     : '<button class="button small" id="open-login">Ingresar</button>';
   const historyLink = $("history-link");
   if (historyLink) historyLink.hidden = !logged;
+  const resultsLink = $("results-link");
+  if (resultsLink) resultsLink.hidden = !logged;
   const link = $("admin-link");
   if (link) {
     link.hidden = !(session.user.admin || session.user.operador);

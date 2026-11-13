@@ -38,9 +38,9 @@ Las pruebas usan H2 aislada en modo PostgreSQL y no modifican la base de desarro
 
 La guía principal es [Java original y sesiones](docs/CAMBIOS_JAVA_Y_SESIONES.md), también en [PDF](docs/CAMBIOS_JAVA_Y_SESIONES.pdf). Enumera todos los archivos Java conservados o agregados, compara el inicio de sesión con ModificaClient.pdf y propone ejercicios para explicarlo. La [guía de desarrollo](docs/GUIA_DESARROLLO.md) mantiene una referencia breve a los criterios de la materia.
 
-Para programar las siguientes funciones a mano, consultá la [guía de ampliaciones del backend en PDF](docs/GUIA_AMPLIACIONES_BACKEND.pdf) o su [versión editable](docs/GUIA_AMPLIACIONES_BACKEND.md). Propone movimientos, presupuestos guardados, verificaciones, confirmación de email y un chatbot opcional de WhatsApp; esas funciones todavía no están implementadas.
+Para programar las siguientes funciones a mano, consultá la [guía de ampliaciones del backend en PDF](docs/GUIA_AMPLIACIONES_BACKEND.pdf) o su [versión editable](docs/GUIA_AMPLIACIONES_BACKEND.md). Es la propuesta de implementación manual original. El proyecto ahora incorpora movimientos, presupuestos guardados y verificaciones; la confirmación de email y el chatbot siguen como ampliaciones futuras.
 
-Comparar y calcular es público. El botón de descarga solicita sesión; el PDF se calcula y genera en el navegador como presupuesto orientativo, sin endpoints Java de presupuestos. ADMIN agrega, modifica y da de baja cortes y locales. OPERADOR solo publica precios nuevos; no edita ni elimina registros. Los precios publicados se conservan como historial. WhatsApp recibe el resumen de texto mediante `wa.me`; el PDF se adjunta manualmente o se comparte desde el menú del dispositivo si soporta Web Share de archivos. La aplicación no manda mensajes automáticamente.
+Comparar y calcular es público. El botón de descarga solicita sesión; el PDF se genera en el navegador como presupuesto orientativo. Al descargar desde la calculadora se guarda el presupuesto mediante el backend. ADMIN agrega, modifica y da de baja cortes y locales. OPERADOR solo publica precios nuevos; no edita ni elimina registros. Los precios publicados se conservan como historial. WhatsApp recibe el resumen de texto mediante `wa.me`; el PDF se adjunta manualmente o se comparte desde el menú del dispositivo si soporta Web Share de archivos. La aplicación no manda mensajes automáticamente.
 
 ## Paneles por rol
 
@@ -70,4 +70,12 @@ La calculadora y el PDF pasaron a `presupuesto.js` y `reporte.js`; se retiraron 
 
 ## Mis presupuestos
 
-`/mis-presupuestos.html` integra el historial con el diseño y la sesión actuales. Incluye tarjetas, búsqueda/orden, paginación, detalle móvil y regeneración del PDF con los importes guardados. Consume el listado y el GET por ID que estás implementando en Java; esta integración no agrega esos controladores. Revisá [el contrato y las pruebas del frontend](docs/MIS_PRESUPUESTOS.md).
+`/mis-presupuestos.html` integra el historial con el diseño y la sesión actuales. Incluye tarjetas, búsqueda/orden, paginación, detalle móvil y regeneración del PDF con los importes guardados. Consume el listado y el GET por ID de `PresupuestoController`, incorporados desde tu ZIP. Revisá [el contrato y las pruebas del frontend](docs/MIS_PRESUPUESTOS.md).
+
+## Verificar compras y consultar resultados
+
+En **Mis presupuestos**, usá **Verificar compra** e ingresá cuánto pagaste por los mismos cortes y kilos. El resultado también queda en el detalle. **Mis resultados** (`/resultados-presupuestos.html`) muestra las compras verificadas, las pendientes, sus importes y filtros por valoración. Cada cuenta consulta únicamente sus propios presupuestos; se permite una verificación por presupuesto.
+
+La diferencia de hasta ±5 % es **ACORDE**. **SOBREESTIMADO** significa que se calculó de más y se pagó menos; **SUBESTIMADO**, que se calculó de menos y se pagó más. El presupuesto guardado conserva sus importes originales.
+
+Leé [los ajustes de Java y la integración](docs/VERIFICACIONES_IMPLEMENTACION.md), también disponibles en [PDF](docs/VERIFICACIONES_IMPLEMENTACION.pdf). Se conservaron tus entidades/repositorios y se corrigieron los parámetros del formulario, el vínculo al presupuesto, la propiedad y la respuesta del DTO para conectar el frontend. No hay dependencias Java adicionales.

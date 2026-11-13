@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#af4427">
+    <title>Mis resultados · Asadito RG</title>
+    <link rel="stylesheet" href="/assets/css/app.css">
+    <link rel="stylesheet" href="/assets/css/mis-presupuestos.css">
+    <link rel="stylesheet" href="/assets/css/verificaciones.css">
+    <script type="module" src="/assets/js/resultados-presupuestos.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a
+        class="brand brand-with-logo"
+        href="/"
+        aria-label="Asadito RG, inicio"
+        ><img
+          class="brand-logo"
+          src="/assets/img/Logo%20Asadito%20RG%20-%20PNG.png"
+          alt="Asadito RG"
+          width="2481"
+          height="897"
+        /><span class="brand-caption">RÍO GRANDE · TIERRA DEL FUEGO</span></a
+      >
+      <nav aria-label="Navegación principal">
+        <a href="/#comparador">Comparar precios</a
+        ><a href="/#calculadora">Mi presupuesto</a
+        ><a href="/mis-presupuestos.html" id="history-link">Mis presupuestos</a
+        ><a href="/resultados-presupuestos.html" id="results-link" aria-current="page">Mis resultados</a
+        ><a href="/gestion.html" id="admin-link" hidden>Administrar</a>
+      </nav>
+      <div id="session-actions">
+        <button class="button small" id="open-login">Ingresar</button>
+      </div>
+    </header>
+    <main class="section results-page">
+      <section class="history-intro"><div><span class="eyebrow">DESPUÉS DE LA JUNTADA</span><h1>Mis resultados</h1><p>Compará lo que estimaste con lo que pagaste.<br>Tu experiencia ayuda a planear el próximo asado.</p></div><aside class="history-note"><span aria-hidden="true">±</span><div><strong>Un margen del 5 %</strong><p>Consideramos acorde una diferencia de hasta el 5 % en ambos sentidos. El porcentaje mostrado está redondeado.</p></div></aside></section>
+      <dl class="results-summary" aria-label="Resumen de esta página"><div><dt>Compras verificadas</dt><dd id="resumen-verificados">—</dd></div><div><dt>Dentro del margen</dt><dd id="resumen-acordes">—</dd></div><div><dt>Pendientes de verificar</dt><dd id="resumen-pendientes">—</dd></div></dl><p id="resumen-importes" class="muted"></p>
+      <div class="history-toolbar"><label>Buscar en esta página<input id="buscar-resultados" type="search" placeholder="Comercio o número de presupuesto" disabled></label><label>Resultado<select id="filtro-resultado" disabled><option value="todos">Todos los resultados</option><option value="pendiente">Sin verificar</option><option value="ACORDE">Acorde a lo estimado</option><option value="SOBREESTIMADO">Se estimó de más</option><option value="SUBESTIMADO">Se estimó de menos</option><option value="error">No disponibles</option></select></label><button id="resultados-actualizar" class="button secondary" disabled>Actualizar</button></div>
+      <div class="history-results-heading"><h2>Tus compras, en perspectiva</h2><p id="resultados-conteo" class="muted" role="status" aria-live="polite">Comprobando tu sesión…</p></div>
+      <section id="resultados-listado" class="history-grid results-grid" aria-label="Resultados de los presupuestos" aria-busy="true"></section>
+      <nav id="paginacion" class="history-pagination" aria-label="Páginas de resultados" hidden><button id="anterior" class="button secondary small">Anterior</button><span id="pagina"></span><button id="siguiente" class="button secondary small">Siguiente</button></nav>
+    </main>
+    <div id="notice" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+    <dialog id="verificacion-dialogo" class="verification-dialog" aria-labelledby="verificacion-titulo">
+      <button class="close-dialog" data-close="verificacion-dialogo" aria-label="Cerrar verificación">×</button>
+      <span class="eyebrow">DESPUÉS DE LA COMPRA</span><h2 id="verificacion-titulo">Verificar presupuesto</h2>
+      <p id="verificacion-local" class="muted"></p>
+      <div class="verification-estimate"><span>Total estimado</span><strong id="verificacion-estimado"></strong></div>
+      <p id="verificacion-cargando" class="muted" role="status">Consultando la verificación…</p>
+      <div id="verificacion-resultado"></div>
+      <form id="verificacion-form" hidden>
+        <p class="muted">Compará la misma compra: los mismos cortes, kilos y comercio, sin sumar envío u otros productos.</p>
+        <label for="verificacion-total">¿Cuánto pagaste en total? (ARS)</label>
+        <input id="verificacion-total" name="totalReal" type="number" inputmode="decimal" min="0.01" max="999999999999.99" step="0.01" required>
+        <label for="verificacion-observacion">Observaciones (opcional)</label>
+        <textarea id="verificacion-observacion" name="observaciones" maxlength="300" rows="3" placeholder="¿Hubo alguna diferencia en la compra?"></textarea>
+        <p class="muted">El resultado es acorde si la diferencia está dentro del ±5 %. Podés registrar una sola verificación por presupuesto.</p>
+        <button id="verificacion-submit" class="button full" type="submit">Guardar verificación</button>
+      </form>
+      <p id="verificacion-error" class="form-error" role="alert"></p>
+      <button id="verificacion-reintentar" class="text-button" hidden>Volver a consultar</button>
+    </dialog>
+    <footer>
+      <a class="brand brand-with-logo footer-logo" href="/"
+        ><img
+          class="brand-logo"
+          src="/assets/img/Logo%20Asadito%20RG%20-%20PNG.png"
+          alt="Asadito RG, inicio"
+          width="2481"
+          height="897"
+          loading="lazy"
+      /></a>
+      <p>Una herramienta para planear la juntada, comercio por comercio.</p>
+      <small
+        >Río Grande, Tierra del Fuego · Precios sujetos a confirmación.</small
+      >
+    </footer>
+    <dialog id="auth-dialog" aria-labelledby="auth-title">
+      <button class="close-dialog" data-close="auth-dialog" aria-label="Cerrar">
+        ×</button
+      ><span class="eyebrow">BIENVENIDO A LA MESA</span>
+      <h2 id="auth-title">Ingresá a tu cuenta</h2>
+      <p id="auth-description" class="muted">
+        Descargá tu presupuesto y llevalo a la juntada.
+      </p>
+      <form id="auth-form">
+        <label
+          >Email<input
+            name="email"
+            type="email"
+            autocomplete="username"
+            maxlength="120"
+            required /></label
+        ><label
+          >Contraseña<input
+            id="auth-password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+            maxlength="72"
+        /></label>
+        <p id="auth-error" class="form-error" role="alert"></p>
+        <button class="button full" type="submit" id="auth-submit">
+          Ingresar
+        </button>
+      </form>
+      <button class="text-button" id="auth-toggle">
+        ¿Primera vez? Creá tu cuenta
+      </button>
+    </dialog>
+  </body>
+</html>

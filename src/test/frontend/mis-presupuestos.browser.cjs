@@ -56,6 +56,7 @@ let browser;
       }
       return json(fixtures);
     }
+    if (url.pathname.endsWith('/verificacion')) return json({ message: 'Todavía no tiene verificación' }, 404);
     if (url.pathname.startsWith('/api/presupuestos/')) {
       if (delayed) await new Promise(resolve => setTimeout(resolve, 180));
       if (failDetail) return json({ message: 'Presupuesto inexistente' }, 404);

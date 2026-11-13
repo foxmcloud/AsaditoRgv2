@@ -675,6 +675,7 @@ dialog form .button {
   }
 }
 .session-name {
+  white-space: nowrap;
   max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;

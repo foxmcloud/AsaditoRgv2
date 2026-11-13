@@ -18,7 +18,7 @@ Se admiten importes ARS, como en la calculadora actual. Valores o detalles ausen
 
 ## Backend
 
-Esta entrega no modifica Java ni agrega los controladores de presupuestos. Usá el backend que estás programando con las rutas indicadas. La copia del repositorio utilizada para esta integración todavía no contiene esos controladores; no implica que la página esté creando o persistiendo presupuestos por su cuenta.
+El backend actual incluye PresupuestoController, incorporado desde tu ZIP, con listado propio, detalle por ID y guardado. Descargar desde la calculadora guarda un presupuesto; regenerar un PDF desde el historial solo lo consulta y no crea otro registro. El DTO del listado usa localnombre y el del detalle localNombre; el frontend admite ambos nombres.
 
 La configuración actual de Spring permite acceder a la página HTML únicamente con sesión, mediante `anyRequest().authenticated()`. Por eso se accede desde el enlace que aparece tras ingresar en el comparador. La página también contempla una sesión que vence mientras está abierta. Si decidís que el HTML pueda abrirse sin cuenta para mostrar el formulario, podés permitir únicamente `/mis-presupuestos.html` en las páginas públicas; los endpoints de datos deben seguir autenticados y comprobar el dueño. No hace falta hacer público el historial.
 
@@ -33,3 +33,9 @@ node src/test/frontend/mis-presupuestos.browser.cjs
 La prueba de navegador sirve los archivos estáticos y simula el contrato JSON del controlador; no sustituye probar tu implementación Java. Comprueba tarjetas, filtros, orden, detalle móvil, paginación, PDF histórico, estados vacíos/errores, login/logout y cancelación de una descarga al cerrar sesión. También comprueba que el PDF de la calculadora siga funcionando.
 
 `ASADITO_PREVIEW_DIR` permite elegir la carpeta de capturas/PDF de prueba. `CHROMIUM_PATH` permite indicar el ejecutable del navegador. Las pruebas usan datos ficticios y no escriben en una base real.
+
+## Verificaciones
+
+Cada tarjeta permite verificar la compra y el detalle muestra estimado, pagado, diferencia, porcentaje, valoración y observaciones. El botón Mis resultados abre una página con los resultados propios, filtros y compras pendientes. El enlace desde un resultado usa `/mis-presupuestos.html?presupuesto=ID` para abrir directamente su detalle.
+
+Consultá [la guía de verificaciones](VERIFICACIONES_IMPLEMENTACION.md) para el contrato, las validaciones y los pequeños ajustes de Java necesarios.
