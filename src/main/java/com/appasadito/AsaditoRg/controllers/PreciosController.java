@@ -83,6 +83,8 @@ public class PreciosController {
         movimientosService.registrar(usuario, "PRECIO_PUBLICADO", "Precios", guardado.getId(),
                 "Corte " + producto.getNombre() + ", local " + local.getNombre() );
 
+
+
         return new PreciosDTO(guardado);
     }
 }
